@@ -97,15 +97,16 @@ class _SealedContainerState extends State<SealedContainer>
     // Throttle JS bridge to ~30fps (skip every other call)
     if (_spinCallCount % 2 != 0) return;
 
-    // Use only camera-orbit for smooth 360° rotation around the model
-    // theta=yaw controls horizontal rotation, phi=90deg keeps camera level
+    // Use both theta (yaw) and phi (pitch) for full 3D rotation
+    // theta=yaw controls horizontal rotation, phi=pitch controls vertical tilt
     // 2.5m distance ensures the full model stays in frame at all angles
     final yaw = state.yawDeg.toStringAsFixed(1);
+    final pitch = state.pitchDeg.toStringAsFixed(1);
     unawaited(_runJS!(
       'try{'
       'var mv=document.querySelector("model-viewer");'
       'if(mv){'
-      'mv.setAttribute("camera-orbit","${yaw}deg 90deg 2.5m");'
+      'mv.setAttribute("camera-orbit","${yaw}deg ${pitch}deg 2.5m");'
       'if(typeof mv.jumpCameraToGoal==="function")mv.jumpCameraToGoal();'
       '}'
       '}catch(e){console.warn("[SPIN] JS error:",e);}',
