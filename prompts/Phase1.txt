@@ -1,0 +1,288 @@
+"""
+Phase 1: Daily Meme Drop - Expanded Design Document
+
+A minimalist Flutter mobile app where users receive two time-gated meme drops daily.
+
+CORE CONCEPT AND PHILOSOPHY
+
+The Vibe: Digital artifact hunting. Scarcity creates value. 
+No FOMO through grinding - just pure, time-boxed serendipity.
+
+Key Principles:
+- Anti-engagement: The app resists infinite scroll
+- Scarcity economics: Miss it, lose it forever
+- Anonymous by design: You are your collection, not your profile
+- Brutalist honesty: Raw textures, system fonts, no polish theater
+
+USER JOURNEY AND FLOW
+
+Entry Point: The Landing
+Visual: Concrete gray background. Centered, massive typography: "DROP."
+Interaction: Single tap anywhere triggers immediate generation of Anonymous ID (UUID v4) + timestamp
+Storage: SharedPreferences key 'anonymous_id' (persistent across sessions)
+No: Email fields, social auth buttons, "Continue with...", onboarding carousels
+
+The Home Screen: The Vault
+Primary Element: Sealed container (envelope/box/card-back) centered, 70% viewport
+States:
+- Sealed: Subtle breathing animation (scale 1.0 to 1.02 loop, 3s). No text label - visual language only
+- Countdown: Micro-typography below container: "NEXT DROP: 04H 23M" (updates in real-time based on device clock vs last_opened timestamp)
+- Ready State: When window opens, container emits faint glow + haptic pulse (if enabled)
+
+Interaction: Tap container triggers reveal sequence
+
+The Reveal: Ritual Animation
+Sequence (800ms total):
+1. Anticipation (0-200ms): Container shakes 3x rapidly (small amplitude)
+2. The Break (200-300ms): Seal tears/opens - CSS clip-path animation or simple scale pop
+3. Rarity Shuffle (300-600ms): 3-5 meme thumbnails flash rapidly in center slot (slot machine effect)
+4. The Settle (600-800ms): Final meme snaps into place with tier badge overlay
+
+Tier System:
+- Common (Gray #808080)
+- Rare (Cyan #00D4AA)
+- Epic (Purple #9B59B6)
+- Legendary (Gold #FFD700)
+
+Post-Reveal: Single primary action button: "STASH TO GALLERY" (swipe up to dismiss also works)
+
+The Meme View: Consumption
+Layout: Full-bleed image, black background
+Gestures:
+- Pinch-to-zoom (native gesture)
+- Long-press triggers Save to camera roll (native share sheet)
+- Swipe down to dismiss (with parallax background shift)
+
+No: Comment fields, like buttons, share icons, "Related Memes"
+
+Collection Gallery: The Hoard
+Layout: Waterfall or horizontal scroll (masonry aesthetic)
+Empty State: "Your gallery is as barren as your DMs." (Centered, small text, self-deprecating humor)
+Thumbnails:
+- Subtle colored border matching tier (2px glow)
+- No view counts, no dates. Just the image.
+- Tap triggers full-screen view (same as Meme View)
+
+TECHNICAL ARCHITECTURE
+
+Time-Gating Logic (The Gatekeeper)
+
+Pseudocode for drop validation:
+
+```dart
+bool canOpenDrop() {
+  final now = DateTime.now();
+  final lastOpened = prefs.getInt('last_opened_timestamp') ?? now;
+  final firstWindowStart = DateTime(now.year, now.month, now.day, 0, 0); // 00:00 today
+  final firstWindowEnd = firstWindowStart.add(Duration(hours: 12));
+  final secondWindowStart = firstWindowEnd; // 12:00
+  final secondWindowEnd = secondWindowStart.add(Duration(hours: 12));
+  
+  // User can ONLY open if:
+  // 1. First time ever (no timestamp)
+  // 2. Last opened was BEFORE current window started
+  if (lastOpened == null) return true;
+  
+  // Check if we're in window 1 (00:00-11:59)
+  if (now.isAfter(firstWindowStart) && now.isBefore(firstWindowEnd)) {
+    // Must have last opened before window start
+    return lastOpened.isBefore(firstWindowStart);
+  }
+  
+  // Check if we're in window 2 (12:00-23:59)
+  if (now.isAfter(secondWindowStart) && now.isBefore(secondWindowEnd)) {
+    // Must have last opened before window start
+    return lastOpened.isBefore(secondWindowStart);
+  }
+  // Else: Too late, wait for tomorrow
+  return false;
+}
+```
+
+Local Data Schema
+
+SharedPreferences Structure:
+```json
+{
+  "anonymous_id": "uuid-v4-string",
+  "collection": [
+    {
+      "asset_path": "memes/rare_pepe_01.png",
+      "rarity": "rare",
+      "acquired_at": 1713523200,
+      "viewed": true
+    }
+  ],
+  "last_opened_timestamp": 1713523200,
+  "haptics_enabled": true,
+  "crt_effect_enabled": false
+}
+```
+
+Asset Pipeline:
+- 200+ curated memes bundled in /assets/memes/
+- Rarity distribution: Weighted random (Common 70%, Rare 25%, Epic 4%, Legendary 1%)
+- Metadata: Each asset has rarity, tags, file_name in manifest
+
+UI/UX SPECIFICATIONS
+
+Color Palette (Dark Mode Default):
+
+| Element | Hex | Usage |
+|---------|-----|-------|
+| Background | #0A0A0A | Void black |
+| Surface | #141414 | Cards, containers |
+| Primary | #FFFFFF | Text, icons |
+| Common | #808080 | Tier badge |
+| Rare | #00D4AA | Tier badge |
+| Epic | #9B59B6 | Tier badge |
+| Legendary | #FFD700 | Tier badge |
+| Accent | #FF3333 | Error, destructive |
+
+Typography:
+- Font Family: System default (San Francisco/Roboto/Inter)
+- Scale: Massive for landing (72sp+), micro for countdown (10sp)
+- Treatment: ALL CAPS for label, Sentence case for empty state
+
+Motion and Haptics:
+- Reveal Animation: Spring curve (overshoot, then settle)
+- Dismiss: Ease-out with parallax
+- Haptics:
+  - Light impact on tap (sealed container)
+  - Medium impact on reveal completion
+  - Heavy impact on legendary drop
+
+The "CRT" Aesthetic (Optional Toggle):
+- Scanlines: 1px horizontal lines, 20% opacity, overlay entire app
+- Flicker: Subtle brightness fluctuation on transitions (plus/minus 5%)
+- Chromic aberration: 2px RGB split on edges during animations
+
+ANTI-FEATURES (WHAT WE DON'T BUILD)
+
+Explicitly Excluded from Phase 1:
+- No Push notifications ("Your drop is ready!")
+- No User accounts / Login / Password reset
+- No Cloud sync / Cross-device collection
+- No Social features (sharing within app, comments)
+- No Trading/gifting memes
+- No Deep linking ("open meme #47")
+- No Search functionality
+- No Infinite scroll (gallery is finite)
+- No Monetization (ads, premium tiers, NFTs)
+- No Settings beyond: Haptics toggle + CRT toggle + Clear Collection
+
+DEVELOPMENT PRIORITIES
+
+1. Time validation logic (bulletproof, timezone-aware)
+2. Animation system (flutter_animate or custom controller)
+3. Local persistence (hive or shared_preferences)
+4. Asset manifest with rarity weighting
+5. Gesture handling (pinch-zoom, long-press save)
+6. Empty states copywriting (the voice of the app)
+
+SUCCESS METRICS
+
+- Day 1 Retention: Did they come back tomorrow for second drop?
+- Collection Size: Average memes "Stashed" per user
+- Screenshot Rate: Are they saving these? (Camera roll indicator)
+- Session Length: Brief, purposeful (less than 90s typical)
+
+CRITICAL IMPLEMENTATION DETAILS
+
+Time Window Logic:
+The key challenge: Preventing timezone manipulation (user changing device clock to cheat drops).
+
+Solution:
+- Store last_opened_timestamp in UTC
+- Compare against DateTime.now().toUtc()
+- Window calculation uses UTC day boundaries (00:00 UTC / 12:00 UTC)
+- Local display converts UTC to device timezone for countdown
+
+Edge Case Handling:
+- App killed/backgrounded during reveal: Save State, then Resume animation on return
+- Midnight boundary: If opened at 11:59:59, timestamp records that Window 1 was "consumed"
+- Device clock changes: If user changes clock backward, last_opened remains honest (they don't get extra drops)
+
+The "Stash" Action:
+When user taps "STASH TO GALLERY":
+1. Haptic confirmation (light)
+2. Asset added to collection list in preferences
+3. UI immediately updates (hero animation to gallery position)
+4. No cloud upload. Local only.
+
+Gallery Sort Order:
+Default: Acquired (newest first)
+Optional sorts: Rarity (Legendary to Common), Random shuffle
+
+Memory Management:
+- Collection stored as JSON string in SharedPreferences
+- Limit: No enforced limit (phones have storage), but consider pagination if greater than 500 items
+- Images cached via flutter_cache_manager or similar (load on demand)
+
+The Countdown Display:
+
+```dart
+// Logic for "Next drop in Xh Ym"
+String getCountdownText() {
+  final now = DateTime.now().toUtc();
+  final nextWindow = now.hour < 12 
+      ? DateTime.utc(now.year, now.month, now.day, 12, 0)  // 12:00 UTC
+      : DateTime.utc(now.year, now.month, now.day + 1, 0, 0);  // 00:00 UTC tomorrow
+  
+  final difference = nextWindow.difference(now);
+  final hours = difference.inHours;
+  final minutes = difference.inMinutes % 60;
+  
+  return "NEXT DROP: ${hours}H ${minutes}M";
+}
+```
+
+FLUTTER PROJECT STRUCTURE
+
+```
+meme_drop_app/
+├── lib/
+│   ├── main.dart
+│   ├── models/
+│   │   ├── meme.dart
+│   │   └── collection_item.dart
+│   ├── screens/
+│   │   ├── landing_screen.dart
+│   │   ├── home_screen.dart
+│   │   ├── reveal_screen.dart
+│   │   ├── meme_view_screen.dart
+│   │   └── gallery_screen.dart
+│   ├── services/
+│   │   ├── drop_service.dart
+│   │   ├── collection_service.dart
+│   │   └── asset_service.dart
+│   ├── widgets/
+│   │   ├── sealed_container.dart
+│   │   ├── countdown_timer.dart
+│   │   ├── rarity_badge.dart
+│   │   ├── meme_card.dart
+│   │   └── crt_overlay.dart
+│   └── main.dart
+├── assets/
+│   ├── memes/
+│   │   ├── Common/
+│   │   ├── Rare/
+│   │   ├── Epic/
+│   │   ├── Legendary/
+│   │   └── manifest.json
+│   └── fonts/
+└── pubspec.yaml
+```
+
+Key Dependencies:
+- shared_preferences: ^2.2.2
+- flutter_animate: ^4.5.0
+- flutter_cache_manager: ^3.3.1
+- intl: ^0.19.0
+
+State Management:
+Use Riverpod or Bloc (simple state, no backend)
+
+Document Version: 1.0
+Status: Ready for implementation
+"""

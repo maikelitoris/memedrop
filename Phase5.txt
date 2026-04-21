@@ -1,0 +1,411 @@
+**D R O P .**
+
+Daily Meme Drop - Flutter App
+
+**Phase 5 - Incremental Collection, Card Depth & Reel Polish**
+
+Authored: 19 April 2026
+
+_Supersedes Phase 5 v1 - fused with user review and design intent corrections_
+
+# 0\. Project State at Phase 5 Start
+
+This section is the source of truth for what has been built, what is working, and what is broken or missing. Every phase document starts with this section so the implementing agent has full context before reading any spec.
+
+## 0.1 What Has Been Implemented (Phases 1-4)
+
+| **Phase**             | **Delivered**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Phase 1**           | Home screen with "DROP." title, sealed vault container with breathing animation, countdown timer, gallery screen ("The Hoard"), rarity border system (Common/Rare/Epic/Legendary), basic reveal animation (container shake → meme snap).                                                                                                                                                                                                                                                                   |
+| **Phase 2**           | Streak system (fire badge, longest streak), collection stats bar in gallery AppBar, rarity reveal fanfare (Epic/Legendary flash + haptic), meme detail screen enhancements (header bar, save to camera roll, acquired date), settings screen (haptics, CRT, anonymous ID, streak stats, PURGE THE HOARD), drop history log, streak freeze (passive 1/week).                                                                                                                                                |
+| **Phase 3**           | 3D meme cards (MemeCard3D widget - Matrix4 flip, front face = meme, back face = lore), meme data model (MemeData with origin/lore/peakEvent/tags/era fields), meme manifest (15 curated entries), gallery hero transitions, meme history screen ("THE LOG"), MemeCardScreen replacing MemeViewScreen, gallery long-press bottom sheet.                                                                                                                                                                     |
+| **Phase 4 (current)** | Rarity tier rename: Common→Normie, Rare→Mid, Epic→Based, Unique→Dank, Legendary→Sigma. New rarity colours. Card leveling system (LV 1-5, duplicate-based XP, per-rarity thresholds). Lore unlock segments (4, tied to level). Gallery card tile redesign (XP bar, level badge, lore dots). CS:GO-style reel opening animation. Styled crate on home screen with cycling rainbow gradient. Meme Coins currency (coins shown in gallery AppBar). Max-level coin conversion. Image size standardisation spec. |
+
+## 0.2 Core Mechanic Shift - Critical Context
+
+Phases 1-3 had a stash/dismiss tension as the central mechanic: you opened a drop, saw the meme, and chose whether to STASH it or let it go forever. That scarcity model was intentional and described in Phase 1.
+
+**PHASE 4 CHANGED THIS INTENTIONALLY. The shift is:**
+
+**The core mechanic is now an INCREMENTAL COLLECTION system.** Memes auto-stash on every drop. The player's progression is driven by collecting duplicates to level cards up (LV 1-5), unlocking lore segments, and eventually earning Meme Coins from max-level dupes. The tension is no longer "keep or discard" - it is "what level is my collection at, and what lore have I unlocked?" This is the intended design.
+
+Consequence: any spec or bug report that treats auto-stash as a regression is WRONG. Auto-stash is correct. The "STASH TO GALLERY" button must NOT be re-introduced. The post-reveal screen shows the card, confirms what was received (new card vs. level-up vs. max-level coin award), and offers CONTINUE.
+
+## 0.3 Current App State from Screen Recordings (19 April 2026)
+
+### Home Screen
+
+| **Crate visual**  | Cycling rainbow gradient border (all 5 rarity colours over 4s). Inner box shows "D R O P." and "TAP TO OPEN". Visually strong and on-spec. |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Layout**        | "DROP." title roughly 1/3 down. Large dead zone above title and below countdown. Phase 2 vertical rhythm fix is not fully applied.         |
+| **Coins counter** | "🪙 0" top-right in AppBar next to grid icon. Too close - layout collision risk.                                                           |
+| **Streak badge**  | Not visible (correct for streak 0-1).                                                                                                      |
+
+### CS:GO Reel Opening
+
+| **Reel mechanics**       | Scrolling strip of coloured tiles works. Centre-line indicator present. "OPENING..." label above reel. Deceleration is functional.                                                                                           |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Bug: reel duration**   | Reel spins for too short a time. Tension and anticipation are undercut. Needs more spin time.                                                                                                                                |
+| **Bug: card backs**      | Reel tiles show as solid rarity-coloured rectangles with no content. Should show a "?" on the back face of each tile (trading-card aesthetic - you can see the back of cards flying by but not their face).                  |
+| **Bug: result mismatch** | CRITICAL: the reel can land on a Mid tile (blue) and the revealed card is Normie (grey). The result rarity does not match the landing tile rarity. The reel generation algorithm and the actual result are not synchronised. |
+| **Landing animation**    | Reel stops and immediately jumps to card reveal - no landing-tile scale/pulse beat between reel stop and card appear.                                                                                                        |
+| **Screen fill**          | Reel strip is vertically centred. Large empty black zones above and below. Under-utilised screen space.                                                                                                                      |
+
+### Post-Reveal Card Screen
+
+| **Auto-stash (correct)** | Card is auto-stashed. "STASHED" or "LEVEL UP! NOW LV X" shown below card. "CONTINUE" button. This is CORRECT behaviour per the Phase 4 mechanic shift.                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Bug: 3D flip removed** | The MemeCard3D widget (implemented in Phase 3, pure Matrix4 3D flip) was removed by Gemini during Phase 4 implementation. The card on the reveal screen is now a static flat rectangle. Tapping it does nothing. Must be restored.    |
+| **Bug: card back empty** | Even when the flip does occur (from gallery), the card back renders as a solid rarity colour - no lore, no segmented content, no blur, no padlock icons. The lore system from Phase 3 is not wired to the card back face.             |
+| **Bug: data not linked** | The MemeData fields (name, era, origin, lore, peakEvent, tags) are not connected to the card display. CollectionItem.memeId is either missing or not used to look up MemeData from the manifest. Cards render without their identity. |
+| **Level-up text**        | "LEVEL UP! NOW LV 2" in plain green text. No animation. Correct information, poor execution.                                                                                                                                          |
+
+### Gallery - The Hoard
+
+| **Card tiles**        | Two-column grid. Each tile shows: image/placeholder, rarity badge (e.g. "NORMIE"), level badge ("LV 1"), 4 lore dots top-right, XP bar at bottom. Layout is correct.                                                                    |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Placeholder cards** | Cards without real images show a solid rarity-colour fill (purple for Based, cyan for Mid, grey for Normie). The real-image cards (road sign meme) render correctly with the image. Mixed state is acceptable until real assets arrive. |
+| **Stats pills**       | No longer visible in Phase 4 recording. Regression from Phase 2.                                                                                                                                                                        |
+| **Rarity glow**       | Coloured border glow visible and distinct per rarity. Improvement over Phase 3.                                                                                                                                                         |
+| **Coin counter**      | "🪙 0" in AppBar top-right - cramped with grid icon.                                                                                                                                                                                    |
+
+### Card Detail View (from gallery tap)
+
+| **Card display**          | Full-screen card with rarity glow. Correct proportions.                                                                                                                                                                  |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Bug: 3D flip broken**   | Tapping card triggers a Matrix4 rotation (visible as card going edge-on in one frame) but the card back is a solid rarity colour - no lore content at all. The flip geometry works but the back face content is missing. |
+| **Bug: no header/footer** | No back button, no rarity badge in header. No SAVE TO CAMERA ROLL, no acquired date. User relies on OS back gesture only.                                                                                                |
+| **Bug: glow edge effect** | User requested: a gradient colour glow on the EDGES of the card that matches the rarity colour - like a halo bleeding in from the screen edges. Not currently present. This is a NEW feature request.                    |
+
+### Settings Screen
+
+| **All items present**  | HAPTICS, CRT EFFECT, DROP WINDOWS, ANONYMOUS ID, YOUR STREAK, LONGEST STREAK, TOTAL STASHED, STASH RATE, PURGE THE HOARD.                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Bug: STASH RATE 0%** | Shows 0% despite stashed items. The stashed flag in drop_history is not being updated when a card is received. Carry-forward from Phase 2. |
+| **Bug: CRT off**       | CRT toggle ON but no scanlines visible. CRTOverlay not at root widget level.                                                               |
+| **THE LOG row**        | Confirm HISTORY navigation row still links correctly to MemeHistoryScreen after Phase 4 restructuring.                                     |
+
+# 1\. Bug Register
+
+All bugs to be fixed in Phase 5, observed from screen recordings and design intent review. Severity: CRITICAL = breaks core loop, HIGH = visible regression, MEDIUM = polish/UX issue.
+
+| **ID** | **Screen**  | **Description**                                                                                                                                                                                                                                                                        | **Severity** | **Disposition** |
+| ------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | --------------- |
+| BUG-01 | Reel        | RESULT MISMATCH: The reel can land on a Mid (blue) tile and reveal a Normie (grey) card. The reel generation algorithm and the actual drop result are disconnected. The result rarity must be determined FIRST; only then is the reel generated to guarantee the winning tile matches. | **CRITICAL** | **MUST FIX**    |
+| BUG-02 | Card (all)  | 3D FLIP REMOVED: The MemeCard3D widget (Matrix4 flip, Phase 3) was deleted during Phase 4. Both the reveal screen and gallery card detail now show a static flat card. Must be fully restored.                                                                                         | **CRITICAL** | **MUST FIX**    |
+| BUG-03 | Card (all)  | LORE NOT RENDERED: Card back face is a solid rarity-colour fill. No lore segments, no blurred locked sections, no padlock icons, no text content. The MemeData lore fields are unconnected to the card back.                                                                           | **CRITICAL** | **MUST FIX**    |
+| BUG-04 | Card (all)  | DATA NOT LINKED: CollectionItem.memeId is not used to look up MemeData from the manifest. Cards have no name, era, or lore identity. MemeData.origin/lore/peakEvent/tags are unused at runtime.                                                                                        | **CRITICAL** | **MUST FIX**    |
+| BUG-05 | Reel        | REEL TOO SHORT: The reel spinning duration is too brief. Tension and anticipation are undercut. Increase spin duration to minimum 4.5s (from what appears to be ~2s currently). Easing curve should feel like genuine deceleration.                                                    | **HIGH**     | **MUST FIX**    |
+| BUG-06 | Reel        | NO "?" ON CARD BACKS IN REEL: Reel tiles show as solid colour rectangles. Should display a "?" character (or a back-face design) to evoke the trading-card aesthetic - you can see the back of cards flying past.                                                                      | **HIGH**     | **MUST FIX**    |
+| BUG-07 | Gallery     | STATS PILLS GONE: The AppBar bottom stat pills (e.g. "5 STASHED", "2 ✦ SIGMA") were implemented in Phase 2 and are no longer visible in Phase 4. Regression.                                                                                                                           | **HIGH**     | **MUST FIX**    |
+| BUG-08 | Home        | VERTICAL RHYTHM BROKEN: Large dead zones above the DROP. title and below the countdown. The Phase 2 Spacer-based column layout was specified but not applied.                                                                                                                          | **HIGH**     | **MUST FIX**    |
+| BUG-09 | Card Detail | NO HEADER/FOOTER ON CARD DETAIL: MemeCardScreen from gallery has no back button, no rarity badge in header, no SAVE TO CAMERA ROLL, no acquired date. Navigation only via OS gesture.                                                                                                  | **HIGH**     | **MUST FIX**    |
+| BUG-10 | Settings    | STASH RATE SHOWS 0%: The stashed flag in drop_history is not updated when a card is auto-stashed. Formula returns 0% despite items in collection.                                                                                                                                      | **HIGH**     | **MUST FIX**    |
+| BUG-11 | Reel        | NO LANDING ANIMATION: After reel stops, jumps directly to card reveal with no intermediate landing-tile scale/pulse beat. Kills the tension moment.                                                                                                                                    | **MEDIUM**   | **SHOULD FIX**  |
+| BUG-12 | Home        | COIN COUNTER CRAMPED: "🪙 0" and grid icon in AppBar top-right are too close. Insufficient padding, collision risk on smaller phones.                                                                                                                                                  | **MEDIUM**   | **SHOULD FIX**  |
+| BUG-13 | Reveal      | LEVEL-UP IS FLAT: "LEVEL UP! NOW LV 2" in plain green text. No animation, no energy. Needs a proper celebration moment.                                                                                                                                                                | **MEDIUM**   | **SHOULD FIX**  |
+| BUG-14 | All         | CRT OVERLAY NOT AT ROOT: CRT scanlines do not appear on home screen despite toggle being ON. CRTOverlay widget must wrap MaterialApp in main.dart, not individual screens.                                                                                                             | **MEDIUM**   | **SHOULD FIX**  |
+| BUG-15 | Reel        | REEL SCREEN UNDERUSED: Large empty black zones above and below the reel strip. "OPENING..." label floats alone in the upper half. Waste of screen space.                                                                                                                               | **MEDIUM**   | **SHOULD FIX**  |
+
+# 2\. Phase 5 - Fix Specifications
+
+Implement in the exact order listed. Do not start a step until the previous passes flutter analyze with zero warnings.
+
+## Fix F-01: Reel Result Synchronisation (BUG-01)
+
+Root cause: the result rarity is determined independently from the reel. They must be tied together at generation time.
+
+**Correct flow in DropService / AssetService:**
+
+- STEP 1 - Before showing the reel, determine the result: call selectRandomMeme() → get MemeData with a definite rarity tier.
+- STEP 2 - Pass that rarity into generateReel(resultRarity). The winning tile at position \[31\] is set to resultRarity. The reel is built AROUND the result, never the other way around.
+- STEP 3 - After reel lands, the card reveal uses the SAME MemeData object that was selected in Step 1. No second random call.
+
+Updated generateReel function:
+
+_function generateReel(resultRarity: RarityTier): RarityTier\[\] - identical to Phase 4 §6.2 but called with the already-known result. The result rarity at index \[31\] is a parameter, not a re-roll._
+
+## Fix F-02: Reel Duration and Deceleration (BUG-05)
+
+The reel feels too quick. The spin must feel weighty - like a real slot machine running out of momentum.
+
+- Minimum total spin duration: 4.5 seconds (was approximately 2s).
+- Animation curve: cubic-bezier(0.02, 0.85, 0.2, 1.0) - very slow start, peak speed around 30% of duration, long deceleration tail for the final 50%.
+- Speed phases: fast scroll (0-40% of duration), constant fast (40-60%), gradual deceleration (60-100%).
+- In Flutter: use an AnimationController with duration: Duration(milliseconds: 4500) and a CurvedAnimation with a custom Cubic curve. Drive the reel track translateX from an AnimationController listener.
+- The final tile must come to a complete stop with no bounce or overshoot - the deceleration is the drama.
+
+## Fix F-03: "?" Back Face on Reel Tiles (BUG-06)
+
+Reel tiles represent the backs of cards flying past - you cannot see what they are. Each tile must show a card-back design.
+
+- Each reel tile: dark background (#1A1A1A), a large "?" character centred (fontSize: 32sp, color: #333333, fontWeight: w300), and a 2px border in the rarity colour of that tile with a matching glow.
+- The rarity border+glow on each tile still reflects its rarity colour - this is the only rarity signal visible during the spin.
+- This creates the sensation of card backs rushing past - the colour of the border hints at rarity without revealing the card face.
+- The winning tile at rest: shows a "?" briefly, then the card flip animation begins (see F-07).
+
+## Fix F-04: Restore MemeCard3D - 3D Flip Widget (BUG-02)
+
+The MemeCard3D widget was deleted by the Phase 4 implementer. This was a mistake. It must be fully restored from the Phase 3 spec.
+
+**Core implementation (pure Matrix4, no 3D packages):**
+
+- AnimationController \_flipController: duration 600ms.
+- Front face: card image (or placeholder fill). Shows when \_flipController.value < 0.5.
+- Back face: lore content (see F-06). Shows when \_flipController.value >= 0.5.
+- Transform uses Matrix4.identity()..setEntry(3,2,0.001)..rotateY(angle) where angle goes 0 → pi (front→back) or pi → 2\*pi (back→front).
+- At value == 0.5 (edge-on): switch which face is rendered. The back face is drawn with a horizontal mirror (scaleX: -1) so text reads correctly.
+- Tap gesture on the card triggers \_flipController.forward() or \_flipController.reverse() depending on current state.
+- Snap-back physics: if the user drags but releases before 50% flip, snap back to nearest face with a SpringSimulation (stiffness: 300, damping: 25).
+
+Wire it into both:
+
+- Reveal screen (post-reel card): MemeCard3D renders here. Tap to flip = show lore back. Initial state: back face (card is face-down). Auto-flip to front face as part of the landing animation sequence.
+- MemeCardScreen (from gallery tap): MemeCard3D renders here. Tap to flip = toggle front/back.
+
+## Fix F-05: Link MemeData to Cards - Data Wiring (BUG-04)
+
+CollectionItem must carry a memeId that resolves to a MemeData entry in kMemeManifest. This was specified in Phase 3 but lost in Phase 4.
+
+**Checklist:**
+
+- CollectionItem model: ensure memeId: String field exists and is non-nullable.
+- On drop open: selectRandomMeme() returns a MemeData. Store item.memeId = meme.id when creating CollectionItem.
+- Everywhere a CollectionItem is used (gallery tile, card detail, history screen): look up MemeData with: final meme = kMemeManifest.firstWhere((m) => m.id == item.memeId, orElse: () => kFallbackMeme).
+- kFallbackMeme: a placeholder MemeData with all fields set to safe defaults (empty strings, isPlaceholder: true). Never crash on a missing lookup.
+- Gallery tile: use meme.name for tooltip or accessibility label. Placeholder tiles: show the rarity colour fill (current behaviour) - acceptable.
+- Card front face: show meme.name bottom-left overlay (12sp, letterSpacing: 2, white, semi-transparent) when isPlaceholder is false.
+- Card back face: use meme.origin, meme.lore, meme.peakEvent, meme.tags - see F-06.
+
+## Fix F-06: Implement Lore Card Back (BUG-03)
+
+The card back is currently a solid rarity colour. It must be the lore reveal system designed in Phase 3 + Phase 4.
+
+**Card back layout (dark #141414 surface, same 5:7 dimensions as front):**
+
+| **Zone**  | **Content**                                                                                                    |
+| --------- | -------------------------------------------------------------------------------------------------------------- |
+| Top strip | Meme name (16sp, letterSpacing: 2, white, bold) + era below it (10sp, #666666). Always visible - never locked. |
+| Segment 1 | ORIGIN - unlocks at LV 2. Label: "ORIGIN" (8sp, letterSpacing: 3, #666666). Content: meme.origin text.         |
+| Segment 2 | LORE - unlocks at LV 3. Content: meme.lore text.                                                               |
+| Segment 3 | PEAK MOMENT - unlocks at LV 4. Content: meme.peakEvent text.                                                   |
+| Segment 4 | TAGS + CREDITS - unlocks at LV 5. Content: meme.tags as pill widgets (rarity colour background).               |
+
+**Locked segment treatment:**
+
+- Wrap segment content in a Stack. Bottom layer: blurred text (ImageFilter.blur sigmaX:12, sigmaY:12 via BackdropFilter). Top layer: semi-transparent black overlay (#000000 at 60% opacity) + a padlock icon (Icons.lock_outline, size: 18, color: #444444) + "LV X TO UNLOCK" text (9sp, #555555).
+- pointer-events: none on locked segments (AbsorbPointer wrapping the overlay).
+
+**Unlock animation (triggered on level-up):**
+
+- Blur dissolves: AnimationController 600ms, drives ImageFilter.blur sigmaX from 12 → 0.
+- Overlay fades: overlay opacity 0.6 → 0.0.
+- Gold shimmer sweep: a gradient Container (Color(0xFFFFD700).withOpacity(0.18) → transparent) translates left → right over 800ms on top of the segment.
+- Padlock icon scales down and fades out (200ms, before blur starts).
+
+Read unlock state from CardInstance.unlockedLoreSegments: a List&lt;int&gt; containing the indices (0-3) of unlocked segments. Index 0 = ORIGIN (LV 2), 1 = LORE (LV 3), 2 = PEAK MOMENT (LV 4), 3 = TAGS (LV 5).
+
+## Fix F-07: Restore Card Detail Header and Action Bar (BUG-09)
+
+MemeCardScreen (accessed from gallery) must have header and footer, as specified in Phase 2.
+
+- Header bar (auto-hides after 2s, tap to toggle, 300ms fade): back chevron top-left + rarity badge top-right. Background: gradient black → transparent, 80px height.
+- Footer action bar: "SAVE TO CAMERA ROLL" full-width button (48px, #1A1A1A, 11sp, letterSpacing: 3) + "ACQUIRED MM.DD.YY" micro-text (8sp, #444444) below it.
+- Long-press bottom sheet: "VIEW LORE" (triggers card flip) + "DELETE FROM HOARD" (#FF3333) with confirmation dialog "Once gone, it's gone. Delete?" \[CANCEL\] \[OBLITERATE\].
+
+## Fix F-08: Reel Landing Animation Beat (BUG-11)
+
+- On reel stop: winning tile scales to 1.15× with a 200ms spring.
+- Tile border glow pulses 3× (BoxShadow blur 16px → 32px → 16px, each 200ms).
+- HapticFeedback.mediumImpact() on landing. HapticFeedback.heavyImpact() if rarity is Dank or Sigma.
+- 800ms pause at landing tile.
+- Black overlay fades in (300ms) → card flips from back face (showing "?") → front face (400ms, Matrix4 rotateY) → rarity glow blooms → "STASHED" or "LEVEL UP" label appears.
+
+## Fix F-09: Gallery Stats Pills Restore (BUG-07)
+
+Re-implement exactly as Phase 2 Fix 2. Pills live in AppBar bottom as a PreferredSize widget:
+
+_PreferredSize(preferredSize: Size.fromHeight(44), child: \_buildStatsPillRow())_
+
+Pills: EdgeInsets.fromLTRB(12, 0, 12, 8). Show: total stashed count + per-rarity counts for tiers present. Empty collection: show empty state copy.
+
+## Fix F-10: Home Screen Vertical Rhythm (BUG-08)
+
+Apply the Phase 2 column layout exactly:
+
+_SizedBox(24) → DROP. title → SizedBox(8) → streak badge → Spacer(flex:2) → vault container → Spacer(flex:1) → countdown/tap label → SizedBox(48)_
+
+## Fix F-11: Stash Rate Calculation (BUG-10)
+
+On every auto-stash: find the matching drop_history entry by opened_at timestamp (±2s tolerance) and set stashed: true. Write back to prefs immediately. Stash rate: stashed_count / total_count. If total is 0, display "-" not "0%".
+
+## Fix F-12: CRT Overlay at Root (BUG-14)
+
+Move CRTOverlay to wrap MaterialApp in main.dart. Read crt_effect_enabled via a ChangeNotifier or Riverpod provider. Remove any per-screen CRT instances.
+
+## Fix F-13: Level-Up Celebration (BUG-13)
+
+- Level badge (LV chip on card): scales 1.0 → 1.4 → 1.0, 400ms, with a gold BoxShadow bloom.
+- Screen edge flash: Color(0xFF00D4AA).withOpacity(0.12) overlay, single fade in/out (300ms).
+- Below card: "LEVEL UP" (11sp, letterSpacing: 3, #00D4AA) → "NOW LV X" (14sp, bold, white) → "X copies to LV Y" (9sp, #666666).
+- HapticFeedback.mediumImpact().
+
+## Fix F-14: Coin Counter Layout (BUG-12)
+
+Move coin counter to a dedicated position. Preferred: a centred subtitle row below "THE HOARD" AppBar title. If kept in AppBar actions: minimum 16px gap via SizedBox between counter and any adjacent icon.
+
+## Fix F-15: Reel Screen Layout (BUG-15)
+
+- Above reel: show the rarity distribution odds as a small horizontal pill row ("70% NORMIE 25% MID 4% BASED 1% DANK 0.1% SIGMA") - 8sp, letterSpacing: 1, each pill in its rarity colour. Positioned ~40px above reel strip.
+- Below reel: show "OPENING..." label 24px below reel strip.
+- These additions fill the empty zones without adding noise.
+
+# 3\. Phase 5 - New Feature Specifications
+
+## Feature A: Card Edge Glow Effect - Rarity Halo (User Request)
+
+When viewing a card full-screen (MemeCardScreen from gallery, or reveal screen post-reel), a gradient glow should bleed in from the screen edges - like the entire screen is backlit by the card's rarity colour. This is distinct from the card's own border glow.
+
+**Implementation:**
+
+- A full-screen Container placed behind the card (Stack, positioned: fill). Its decoration is a BoxDecoration with a RadialGradient (or four EdgeGradients via a CustomPainter).
+- Preferred approach - CustomPainter that draws 4 edge gradients:
+  - Top edge: rarity colour at opacity 0.18 → transparent, 120px tall.
+  - Bottom edge: same.
+  - Left edge: same, 80px wide.
+  - Right edge: same.
+- Rarity colour lookup: same as existing rarity colour map (Normie: #9E9E9E, Mid: #4FC3F7, Based: #AB47BC, Dank: #FF7043, Sigma: #FFD700).
+- The glow breathes: AnimationController looping 3s, drives opacity between 0.12 and 0.22. This gives the card a living presence.
+- On card flip (front → back): glow colour cross-fades with the same 600ms duration as the flip.
+- Sigma cards: glow opacity is higher (0.20 → 0.35) to make them feel more mythical.
+
+Widget: create lib/widgets/rarity_edge_glow.dart. Accepts rarity and child. Wraps child in a Stack with the glow painter behind.
+
+## Feature B: Reveal Screen - Meme Name Typewriter
+
+After the card settles face-up on the reveal screen, the meme's name appears below the rarity badge with a typewriter animation.
+
+- Text: meme.name in ALL CAPS. Style: 14sp, letterSpacing: 2, color: white, fontWeight: w300.
+- Animation: characters appear one-by-one using a Timer that reveals one character every 40ms, starting 400ms after card settles.
+- Below name: meme.era (9sp, #666666). Fades in after name completes (300ms fade).
+- These only show if meme.isPlaceholder == false.
+
+## Feature C: Gallery Sort and Filter
+
+Sort options via sort icon top-right (replaces the unidentified mystery icon from Phase 4):
+
+- NEWEST FIRST (default)
+- RARITY (Sigma → Normie)
+- LEVEL (highest → lowest)
+- ALPHABETICAL
+
+Filter options (same bottom sheet, second section):
+
+- ALL (default)
+- By rarity tier - 5 toggle pills, one per tier, rarity colour
+- MAX LEVEL ONLY - shows LV 5 cards
+- LOCKED LORE - cards with at least one unrevealed segment
+
+Bottom sheet aesthetic: same dark #111111 surface as long-press sheet. Sections: "SORT" and "FILTER" in micro-label style. State: ephemeral (not persisted across sessions).
+
+## Feature D: Vault Shop - Coin Spend Mechanic
+
+Gives Meme Coins a purpose. Access via long-press on the coin counter or a "VAULT" text button below the coin counter in the gallery.
+
+| **Item**      | **Cost**  | **Effect**                                                                                                          |
+| ------------- | --------- | ------------------------------------------------------------------------------------------------------------------- |
+| STREAK SHIELD | 50 coins  | Grants one extra streak freeze for the current week. Stacks with passive freeze (max 2/week total).                 |
+| LORE UNLOCK   | 80 coins  | Unlocks the next locked lore segment on one chosen card without leveling. Presents a picker of eligible cards.      |
+| EXTRA DROP    | 200 coins | Grants one bonus drop outside the time windows. Max 1 held. Shows a secondary indicator on home screen when active. |
+
+- Screen title: "THE VAULT". Same brutalist aesthetic.
+- Insufficient coins: purchase button greyed out (#333333), non-tappable.
+- On purchase: coin counter animates subtraction (count-down, 500ms).
+- Store: vault_streak_shields (int), vault_bonus_drop_available (bool) in SharedPreferences.
+
+## Feature E: Gallery Empty State Enhancement
+
+- Background: large "?" character (fontSize: 120, color: #1A1A1A) centred with the breathing scale animation (1.0 → 1.02, 3s loop).
+- Copy: existing "Your gallery is as barren as your DMs." - keep it.
+- Below copy: add "NEXT DROP: Xh Ym" using the same getCountdownText() as the home screen. Saves the user a back-navigate.
+
+# 4\. Implementation Order
+
+Strict sequence. Each step must pass flutter analyze before the next begins.
+
+| **#** | **Task**                                                        | **Key Files**                                                                          | **Resolves**   |
+| ----- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------- | -------------- |
+| 1     | Reel result sync - determine rarity FIRST, build reel around it | services/drop_service.dart, services/asset_service.dart                                | BUG-01         |
+| 2     | Reel duration (4.5s) + deceleration curve                       | screens/reel_screen.dart (or reveal_screen.dart)                                       | BUG-05         |
+| 3     | "?" back face on reel tiles                                     | widgets/reel_tile.dart (new or existing)                                               | BUG-06         |
+| 4     | MemeData → CollectionItem data wiring                           | models/collection_item.dart, services/collection_service.dart, data/meme_manifest.dart | BUG-04         |
+| 5     | Restore MemeCard3D widget (Matrix4 flip)                        | widgets/meme_card_3d.dart                                                              | BUG-02         |
+| 6     | Lore card back - layout + blur + padlock                        | widgets/meme_card_3d.dart, widgets/lore_segment.dart (new)                             | BUG-03         |
+| 7     | Lore unlock animation (shimmer reveal)                          | widgets/lore_segment.dart, widgets/shimmer_reveal.dart (new)                           | BUG-03 cont.   |
+| 8     | Wire MemeCard3D into reveal screen + reel landing animation     | screens/reveal_screen.dart                                                             | BUG-02, BUG-11 |
+| 9     | Card edge glow widget (rarity halo)                             | widgets/rarity_edge_glow.dart (new)                                                    | Feature A      |
+| 10    | Wire edge glow into reveal screen + MemeCardScreen              | screens/reveal_screen.dart, screens/meme_card_screen.dart                              | Feature A      |
+| 11    | Meme name typewriter on reveal screen                           | screens/reveal_screen.dart                                                             | Feature B      |
+| 12    | Level-up celebration animation                                  | screens/reveal_screen.dart                                                             | BUG-13         |
+| 13    | Restore card detail header + action bar                         | screens/meme_card_screen.dart                                                          | BUG-09         |
+| 14    | Gallery stats pills restore                                     | screens/gallery_screen.dart                                                            | BUG-07         |
+| 15    | Gallery sort and filter sheet                                   | screens/gallery_screen.dart, widgets/sort_filter_sheet.dart (new)                      | Feature C      |
+| 16    | Gallery empty state enhancement                                 | screens/gallery_screen.dart                                                            | Feature E      |
+| 17    | Home vertical rhythm                                            | screens/home_screen.dart                                                               | BUG-08         |
+| 18    | Coin counter layout fix                                         | screens/gallery_screen.dart                                                            | BUG-12         |
+| 19    | Reel screen layout (odds pills, label position)                 | screens/reveal_screen.dart                                                             | BUG-15         |
+| 20    | Stash rate fix                                                  | services/collection_service.dart                                                       | BUG-10         |
+| 21    | CRT overlay to root                                             | main.dart, widgets/crt_overlay.dart                                                    | BUG-14         |
+| 22    | Vault Shop screen                                               | screens/vault_screen.dart (new), services/coin_service.dart (new)                      | Feature D      |
+| 23    | THE LOG + Settings HISTORY link verify                          | screens/meme_history_screen.dart, screens/settings_screen.dart                         | Carry-forward  |
+| 24    | flutter analyze + full manual test path                         | all                                                                                    | all            |
+
+# 5\. Manual Test Path
+
+Run this sequence after step 24. Every item must pass without error or missing UI.
+
+- Launch app → home screen. DROP. title near top. Vault vertically centred. Countdown near bottom. No large dead zones.
+- Tap vault → reel appears. Confirm "?" on all tile backs. Reel spins for at least 4 seconds before slowing. Rarity-colour borders visible on tiles.
+- Reel decelerates. Confirm winning tile scales up and glows. 800ms pause. Haptic on landing.
+- Black overlay fades in. Card flips from "?" back face to front face. Rarity edge glow blooms on screen edges. Meme name typewriters in if meme.isPlaceholder == false.
+- Confirm card rarity (Normie/Mid/Based/Dank/Sigma) MATCHES the tile the reel landed on. Test multiple opens to verify no mismatch.
+- Tap card → 3D flip → card back shows lore content. LV 1 cards: all 4 segments blurred with padlock. LV 2 card: ORIGIN segment readable, others blurred.
+- "CONTINUE" button present. Tap it → home screen. Countdown updated.
+- Open gallery. Stats pills in AppBar bottom. Card tiles show name badge, LV badge, XP bar, 4 lore dots. Rarity edge glow visible when tapping card to full-screen.
+- Tap a card → MemeCardScreen. Header auto-hides after 2s. Tap screen → toggles header/footer. Long-press → bottom sheet with VIEW LORE + DELETE FROM HOARD.
+- DELETE → confirmation dialog "Once gone, it's gone." → OBLITERATE → card removed.
+- Collect enough duplicates to level a card. On reveal: level-up animation fires (badge scale, screen flash, cyan text). "NOW LV X" and XP-to-next shown.
+- Collect max-level duplicate. Toast: "Already maxed! +X coins instead." Coin counter increments.
+- Settings → HAPTICS, CRT toggles work. STASH RATE shows correct percentage. HISTORY row navigates to THE LOG. THE LOG shows entries with correct STASHED/LOST status.
+- Toggle CRT ON → return to home. Scanlines visible on all screens.
+- Gallery: sort icon → sort sheet. Filter by NORMIE → only Normie cards shown. Filter by LOCKED LORE → only cards with unrevealed segments.
+- Empty gallery state: "?" breathes, countdown visible.
+
+# 6\. New Files Required in Phase 5
+
+| **File Path**                      | **Purpose**                                                                                                           |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| lib/widgets/lore_segment.dart      | Lore segment with blur/padlock locked state and shimmer unlock animation.                                             |
+| lib/widgets/shimmer_reveal.dart    | Reusable gold shimmer sweep animation. Used for lore unlock and level-up celebration.                                 |
+| lib/widgets/rarity_edge_glow.dart  | Full-screen edge glow widget. CustomPainter with 4 directional gradients keyed to rarity colour. Breathing animation. |
+| lib/screens/vault_screen.dart      | The Vault Shop. Three purchase items, coin balance display, insufficient-funds state.                                 |
+| lib/services/coin_service.dart     | Coin balance read/write, award logic (max-level dupes), spend logic (vault purchases).                                |
+| lib/widgets/sort_filter_sheet.dart | Bottom sheet for gallery sort and filter. Sections: SORT and FILTER. Returns selected state via callback.             |
+
+# 7\. Permanent Constraints - Do Not
+
+- Do NOT reintroduce a "STASH TO GALLERY" button. Memes auto-stash. This is the Phase 4 mechanic shift and it is intentional.
+- Do NOT add social features, push notifications, accounts, or network calls.
+- Do NOT use any border-radius > 12px.
+- Do NOT use any 3D Flutter package - pure Matrix4 transforms only in MemeCard3D.
+- Do NOT use real meme images - placeholder system only until assets are provided.
+- Do NOT rename working screen files - extend them.
+- Do NOT call DateTime.now() without .toUtc() in any time logic.
+- Do NOT call HapticFeedback without first checking haptics_enabled preference.
+- Do NOT add bottom navigation - keep flat: Home → Gallery, Home → Settings, Home → Vault (new), Gallery → MemeCard.
+- Do NOT add colour outside the defined palette (Normie/Mid/Based/Dank/Sigma + background/surface/accent/error).
+- Do NOT add gradients except the meme detail header bar and the new rarity edge glow.
+
+Phase 5 - Daily Meme Drop
+
+_Fused from screen recordings (19 Apr 2026) + user review + design intent corrections_

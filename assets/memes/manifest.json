@@ -1,0 +1,38 @@
+[
+  {
+    "id": "common_1",
+    "asset_path": "assets/memes/Common/common_1.png",
+    "rarity": "normie",
+    "origin": "First spotted on a forgotten imageboard in 2008.",
+    "lore": "A relic of a simpler time, representing the everyday user.",
+    "peak_moment": "Used by 10 million people in a single day in 2012.",
+    "tags": ["classic", "vintage", "everyday"]
+  },
+  {
+    "id": "rare_1",
+    "asset_path": "assets/memes/Rare/rare_1.png",
+    "rarity": "mid",
+    "origin": "Emerging from the depths of niche subreddits.",
+    "lore": "Slightly more specialized, requires some internet literacy.",
+    "peak_moment": "Featured in a minor tech blog's weekly roundup.",
+    "tags": ["niche", "evolving", "solid"]
+  },
+  {
+    "id": "epic_1",
+    "asset_path": "assets/memes/Epic/epic_1.png",
+    "rarity": "based",
+    "origin": "Born in the high-pressure environment of crypto Twitter.",
+    "lore": "Carries weight and authority in specific digital circles.",
+    "peak_moment": "Referenced by a top-tier influencer during a live stream.",
+    "tags": ["respect", "spice", "authority"]
+  },
+  {
+    "id": "legendary_1",
+    "asset_path": "assets/memes/Legendary/legendary_1.png",
+    "rarity": "sigma",
+    "origin": "A spontaneous eruption of pure digital charisma.",
+    "lore": "Transcends common understanding. It just is.",
+    "peak_moment": "Became the profile picture of a tech mogul for 24 hours.",
+    "tags": ["mythical", "peak", "lone wolf"]
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter pub *)",
+      "Bash(flutter analyze *)",
+      "Bash(python3 *)",
+      "Bash(adb devices *)",
+      "Bash(adb forward *)"
+    ]
+  }
+}

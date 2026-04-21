@@ -1,0 +1,275 @@
+You are working on a Flutter app called "Daily Meme Drop" — a minimalist, brutalist, 
+time-gated meme collection app. The Phase 1 implementation exists and is running 
+(see screenshots). Your job is to:
+
+1. Fix and polish Phase 1 issues visible in the screenshots
+2. Implement all Phase 2 features below
+
+---
+
+### CONTEXT: WHAT PHASE 1 LOOKS LIKE (from screenshots)
+
+Home Screen: Black background, a dark #141414 card centered (~70% viewport width), 
+a gray lock icon centered inside it, "NEXT DROP: 07H 10M" in small caps below. 
+Top-right has a grid icon (gallery nav). The sealed container breathing animation 
+is implemented.
+
+Gallery ("The Hoard"): Black background, "THE HOARD" title centered, back arrow 
+top-left. Currently shows one gray placeholder square (top-left, no rarity border 
+visible, no image content). Layout is a loose grid but feels broken/empty.
+
+---
+
+### PHASE 1 FIXES (do these first)
+
+**Fix 1 — Gallery rarity borders are invisible:**
+Thumbnails in The Hoard must show a 2px colored glow border matching tier:
+- Common: #808080
+- Rare: #00D4AA  
+- Epic: #9B59B6
+- Legendary: #FFD700
+Use BoxDecoration with a BoxShadow spread of 3px at 60% opacity on the tier color, 
+plus a Border of the same color. The gray placeholder shown in the screenshot has 
+no visible border — fix this.
+
+**Fix 2 — Gallery layout is broken:**
+The Hoard should use a SliverMasonryGrid (from flutter_staggered_grid_view package) 
+or a standard 2-column GridView with crossAxisCount: 2, mainAxisSpacing: 8, 
+crossAxisSpacing: 8, padding: EdgeInsets.all(12). Currently items appear unaligned. 
+Each thumbnail should maintain the meme's native aspect ratio.
+
+**Fix 3 — Home screen has no identity:**
+The home screen is pure black with no app identity above the vault container. 
+Add "DROP." in massive typography (fontSize: 28, letterSpacing: 8, color: #FFFFFF, 
+fontWeight: FontWeight.w100) at the top-center, ~80px from the safe area top. 
+This is the app's only branding element.
+
+**Fix 4 — Sealed container visual is weak:**
+The lock icon inside the sealed container is too small and generic. Replace it with 
+a custom sealed state:
+- A centered Column with: a large Icon(Icons.inventory_2_outlined, size: 64, 
+  color: Color(0xFF333333))
+- Below it: Text("SEALED", style: 10sp, letterSpacing: 4, color: #333333)
+- The outer container border should be Color(0xFF1E1E1E) with borderRadius: 4px
+- Keep the existing breathing animation (scale 1.0 → 1.02 loop)
+
+**Fix 5 — No "DROP READY" state differentiation:**
+When a drop IS available (canOpenDrop() == true), the sealed container must 
+visually change:
+- Border color: animate to #FFFFFF at 40% opacity
+- Add a faint white glow: BoxShadow(color: white.withOpacity(0.06), 
+  blurRadius: 20, spreadRadius: 4)
+- Replace "NEXT DROP: X H Y M" with "TAP TO OPEN" (same micro-typography style)
+- Add a subtle pulse animation to the glow (opacity 0.04 → 0.10, 2s loop)
+
+---
+
+### PHASE 2 FEATURES
+
+**Feature 1 — Streak System**
+
+Track how many consecutive days the user has opened at least one drop.
+
+Data model additions to SharedPreferences:
+```json
+{
+  "current_streak": 3,
+  "longest_streak": 7,
+  "last_streak_date": "2024-04-19"  // UTC date string "YYYY-MM-DD"
+}
+```
+
+Streak logic (implement in drop_service.dart):
+- On every successful drop open: check if last_streak_date == yesterday (UTC). 
+  If yes: increment current_streak. If last_streak_date == today: no change 
+  (already counted). If gap > 1 day: reset current_streak to 1.
+- Update longest_streak if current_streak > longest_streak.
+- Store last_streak_date as today's UTC date string.
+
+UI display — Home Screen:
+- Below the "DROP." title, show: "🔥 3 DAY STREAK" (emoji + number + label)
+- Style: fontSize: 11, letterSpacing: 3, color: #FF6B35 (orange)
+- If streak == 0 or 1: show nothing (don't show "1 DAY STREAK" — it's not earned yet)
+- If streak >= 7: change emoji to "⚡" and color to #FFD700 (legendary gold)
+- Animate in with a fade when streak > 1
+
+**Feature 2 — Collection Stats Bar**
+
+In The Hoard gallery screen, replace the plain title area with a stats bar:
+
+Layout: AppBar with custom bottom that shows a horizontal Row of 4 stat pills:
+- Total count: "47 STASHED"
+- Rarity breakdown (only show tiers the user has): "2 ✦ LEGENDARY" "5 ◆ EPIC" etc.
+- Style: Each pill is a Container with background #1A1A1A, borderRadius: 2, 
+  padding: horizontal 10 / vertical 4, fontSize: 9, letterSpacing: 2, 
+  color matching tier (#FFD700 for legendary, etc.)
+- If collection is empty: show the existing empty state copy instead of stats
+
+**Feature 3 — Rarity Reveal Fanfare**
+
+Enhance the existing reveal animation for Epic and Legendary tiers:
+
+After the 800ms base reveal sequence, if rarity is Epic or Legendary:
+
+Epic fanfare (add after settle):
+- The rarity badge (purple #9B59B6) pulses 3x: scale 1.0 → 1.15 → 1.0, 
+  each pulse 200ms, with a medium haptic on each pulse
+- Screen edges flash purple: a full-screen overlay Container with 
+  Color(0xFF9B59B6).withOpacity(0.15), fades in 100ms then out 300ms
+
+Legendary fanfare (add after settle):
+- Play 5 gold particle bursts from the image center (use CustomPainter with 
+  10-15 small circles, randomized velocity vectors, gravity simulation, 1.2s duration)
+- Screen edges flash gold: Color(0xFFFFD700).withOpacity(0.2), pulse 2x
+- Heavy haptic impact
+- The "STASH TO GALLERY" button text changes to "⚡ LEGENDARY ACQUIRED" in gold
+- Badge glows continuously until dismissed: BoxShadow animating opacity 0.3 → 0.8
+
+**Feature 4 — Meme Detail Screen Enhancements**
+
+The full-screen meme view (MemeViewScreen) needs:
+
+Header bar (visible, auto-hides after 2s):
+- Top-left: back chevron
+- Top-right: rarity badge (same tier color system)
+- Background: gradient from black to transparent, 80px height
+
+Bottom action bar (visible, auto-hides after 2s):
+- "SAVE TO CAMERA ROLL" button: full-width, height 48, background #1A1A1A, 
+  all-caps 11sp, letterSpacing 3 — calls image_gallery_saver or gal package
+- Below it: acquisition date in micro-text: "ACQUIRED 04.19.24" (format: MM.DD.YY)
+
+Tap anywhere to toggle header/footer visibility (fade animation, 300ms).
+
+Long-press behavior: remove the existing native share sheet, replace with a custom 
+bottom sheet that has only two options:
+- "SAVE TO CAMERA ROLL" (primary)
+- "DELETE FROM HOARD" (destructive, color: #FF3333) — with confirmation dialog: 
+  "Once gone, it's gone. Delete?" [CANCEL] [OBLITERATE]
+
+**Feature 5 — Settings Screen**
+
+Create a new SettingsScreen accessible from the home screen (add a settings icon 
+top-LEFT to balance the gallery icon top-RIGHT — use Icons.tune_rounded).
+
+Settings items (use a custom ListView, NOT Material ListTile defaults):
+
+Each item: Row with label left (fontSize: 12, letterSpacing: 3, color: #FFFFFF), 
+control right. Dividers: 1px #1A1A1A between items. No chevrons unless navigating.
+
+Items:
+1. HAPTICS — CupertinoSwitch (reads/writes 'haptics_enabled' pref)
+2. CRT EFFECT — CupertinoSwitch (reads/writes 'crt_effect_enabled' pref)  
+3. DROP WINDOWS — static text right-aligned "#666666": "00:00 UTC / 12:00 UTC"
+4. ANONYMOUS ID — truncated UUID right-aligned "#444444" (first 8 chars + "..."), 
+   tap to copy full UUID to clipboard with a brief "COPIED" snackbar
+5. YOUR STREAK — right-aligned: "🔥 N DAYS" or "— " if no streak
+6. LONGEST STREAK — right-aligned: "N DAYS"
+7. TOTAL STASHED — right-aligned: count
+8. CLEAR COLLECTION — full-width button, background transparent, border 1px #FF3333, 
+   text: "PURGE THE HOARD", color: #FF3333, fontSize: 11, letterSpacing: 3.
+   Tap triggers confirmation: "This cannot be undone. All memes will be lost." 
+   [CANCEL] [PURGE] — on confirm, clear collection list in prefs and pop back.
+
+Screen title: "SETTINGS" — same style as "THE HOARD" (centered, letterSpacing: 6)
+Back arrow top-left, same as gallery screen. No bottom nav.
+
+**Feature 6 — Drop History Log**
+
+Track metadata for every drop opened (not just what was stashed).
+
+New prefs key 'drop_history': List<Map> max 60 entries (rolling window):
+```json
+[
+  {
+    "opened_at": 1713523200,
+    "rarity": "rare",
+    "asset_path": "memes/rare/pepe_01.png",
+    "stashed": true
+  }
+]
+```
+
+In Settings screen, add item after TOTAL STASHED:
+- STASH RATE — right-aligned: "X%" (stashed/opened * 100, round to int)
+  e.g. "73%" — this gamifies the implicit choice of whether to keep a drop
+
+**Feature 7 — Streak Freeze (Passive, No UI)**
+
+If the user misses exactly 1 day (gap == 2 days between last_streak_date and today), 
+grant one automatic streak freeze per 7-day period:
+
+Logic in drop_service.dart:
+```dart
+// On drop open, before streak calculation:
+final dayGap = today.difference(lastStreakDate).inDays;
+if (dayGap == 2) {
+  final freezesUsedThisWeek = prefs.getInt('freezes_used_this_week') ?? 0;
+  final weekStart = // Monday of current UTC week
+  final lastFreezeWeek = prefs.getString('last_freeze_week') ?? '';
+  
+  if (lastFreezeWeek != weekStart.toIso8601String().substring(0,10) 
+      || freezesUsedThisWeek < 1) {
+    // Grant freeze: treat as if yesterday was played
+    // Don't reset streak, increment normally
+    prefs.setInt('freezes_used_this_week', freezesUsedThisWeek + 1);
+    prefs.setString('last_freeze_week', weekStart...);
+  } else {
+    // No freeze available, reset streak
+    currentStreak = 1;
+  }
+}
+```
+
+Show a one-time toast/snackbar when a freeze is consumed: 
+"STREAK SAVED. 1 FREEZE USED THIS WEEK." — color: #00D4AA (rare cyan), 
+displayed for 3 seconds, positioned above the bottom safe area.
+
+---
+
+### IMPLEMENTATION NOTES
+
+**Package additions needed (add to pubspec.yaml):**
+- flutter_staggered_grid_view: ^0.7.0  (masonry gallery layout)
+- gal: ^2.3.0  (save to camera roll, cross-platform)
+- uuid: ^4.3.3  (if not already present)
+
+**File structure — new files to create:**
+- lib/screens/settings_screen.dart
+- lib/widgets/fanfare_painter.dart  (CustomPainter for legendary particles)
+- lib/widgets/stats_bar.dart  (gallery stats row)
+- lib/services/streak_service.dart  (extracted streak logic)
+
+**Files to modify:**
+- lib/screens/home_screen.dart  (streak display, "DROP." title, sealed state fix)
+- lib/screens/gallery_screen.dart  (stats bar, grid fix, rarity borders)
+- lib/screens/reveal_screen.dart  (epic/legendary fanfare)
+- lib/screens/meme_view_screen.dart  (header/footer, save, delete, date)
+- lib/services/drop_service.dart  (streak freeze logic, drop history)
+- pubspec.yaml  (new packages)
+
+**Quality bar:**
+- All animations must use flutter_animate or AnimationController — no janky setState rebuilds driving animations
+- All time logic in UTC — never DateTime.now() without .toUtc()
+- Haptics must respect the haptics_enabled preference before every HapticFeedback call
+- No hardcoded strings outside of a central constants file (create lib/constants.dart)
+- Run flutter analyze before finishing — zero warnings
+
+**Do NOT:**
+- Add any social features, accounts, notifications, or network calls
+- Change the core brutalist aesthetic (no rounded corners > 4px, no gradients except 
+  the meme detail header bar, no color outside the defined palette)
+- Add any new navigation paradigm — keep the flat: Home → Gallery, Home → Settings, 
+  Gallery → MemeView structure
+
+Start by reading the existing codebase structure, then implement in this order:
+1. pubspec.yaml updates + flutter pub get
+2. Phase 1 fixes (1-5)
+3. streak_service.dart
+4. Settings screen
+5. Gallery enhancements (stats bar + grid fix + rarity borders)
+6. Reveal fanfare
+7. Meme detail enhancements
+8. Drop history + stash rate
+9. Streak freeze logic
+10. flutter analyze + fix all warnings
