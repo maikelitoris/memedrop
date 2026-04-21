@@ -32,6 +32,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   static const double _maxThrowSpeed = 600.0;
   static const double _maxSpinDegPerSec = 360.0;
   static const double _minSpinDegPerSec = 20.0;
+  static const double _idleSpinDegPerSec = 15.0; // Slow idle spin speed
 
   final _posNotifier = ValueNotifier(const Offset(80, 160));
   final _spinNotifier = ValueNotifier(const RotationState());
@@ -43,7 +44,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   // Spin state
   double _pitchDeg = 0.0;
   double _yawDeg = 0.0;
-  Offset _spinAxis = const Offset(1.0, 0.0); // default: pure X-axis idle (pitch)
+  Offset _spinAxis = const Offset(0.0, 1.0); // default: pure Y-axis idle (yaw)
   DateTime? _panStartTime;
   int _tickLogCount = 0;
 
@@ -154,13 +155,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     // ── Spin: linked to linear velocity, axis lerps toward idle on decay ──
     final speedRatio = (_vel.distance / _maxThrowSpeed).clamp(0.0, 1.0);
-    final spinDeg = _minSpinDegPerSec +
-        speedRatio * (_maxSpinDegPerSec - _minSpinDegPerSec);
+    
+    // Use idle spin speed when moving very slowly, otherwise interpolate
+    final spinDeg = speedRatio < 0.01 
+        ? _idleSpinDegPerSec 
+        : _minSpinDegPerSec + speedRatio * (_maxSpinDegPerSec - _minSpinDegPerSec);
 
-    // Quadratic ease: as brain slows, axis smoothly shifts to idle (1,0)=X-pitch
+    // Quadratic ease: as brain slows, axis smoothly shifts to idle (0,1)=Y-yaw
     final lerpT = (1.0 - speedRatio) * (1.0 - speedRatio);
-    var effX = _spinAxis.dx * (1.0 - lerpT) + lerpT;
-    var effY = _spinAxis.dy * (1.0 - lerpT);
+    var effX = _spinAxis.dx * (1.0 - lerpT);
+    var effY = _spinAxis.dy * (1.0 - lerpT) + lerpT;
     final axisLen = sqrt(effX * effX + effY * effY);
     if (axisLen > 0) {
       effX /= axisLen;
@@ -250,9 +254,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     // Perpendicular axis: throw (vx, vy) → spin axis (-vy, vx) normalised
     // Horizontal throw → Y-axis spin (yaw); vertical throw → X-axis spin (pitch)
+    // Diagonal throws create combined diagonal spin axes
     final throwSpeed = vel.distance;
     if (throwSpeed > 0) {
       _spinAxis = Offset(-vel.dy / throwSpeed, vel.dx / throwSpeed);
+    } else {
+      // If no throw velocity, default to Y-axis yaw spin
+      _spinAxis = const Offset(0.0, 1.0);
     }
 
     _vel = vel;
