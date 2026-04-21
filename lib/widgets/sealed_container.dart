@@ -97,17 +97,15 @@ class _SealedContainerState extends State<SealedContainer>
     // Throttle JS bridge to ~30fps (skip every other call)
     if (_spinCallCount % 2 != 0) return;
 
-    // camera-orbit: theta=yaw (Y-axis spin), phi fixed at 75deg
-    // orientation: pitch (X-axis tumble) as the 2nd Euler angle
-    // jumpCameraToGoal() bypasses model-viewer's interpolation for instant updates
+    // Use only camera-orbit for smooth 360° rotation around the model
+    // theta=yaw controls horizontal rotation, phi=90deg keeps camera level
+    // 2.5m distance ensures the full model stays in frame at all angles
     final yaw = state.yawDeg.toStringAsFixed(1);
-    final pitch = state.pitchDeg.toStringAsFixed(1);
     unawaited(_runJS!(
       'try{'
       'var mv=document.querySelector("model-viewer");'
       'if(mv){'
-      'mv.setAttribute("camera-orbit","${yaw}deg 75deg auto");'
-      'mv.setAttribute("orientation","0deg ${pitch}deg 0deg");'
+      'mv.setAttribute("camera-orbit","${yaw}deg 90deg 2.5m");'
       'if(typeof mv.jumpCameraToGoal==="function")mv.jumpCameraToGoal();'
       '}'
       '}catch(e){console.warn("[SPIN] JS error:",e);}',
@@ -165,7 +163,7 @@ class _SealedContainerState extends State<SealedContainer>
               disableZoom: true,
               touchAction: TouchAction.none,
               interactionPrompt: InteractionPrompt.none,
-              cameraOrbit: '0deg 75deg auto',
+              cameraOrbit: '0deg 90deg 2.5m',
               // Signal Flutter when the GLB model has fully loaded
               relatedJs: _bridgeJs,
               javascriptChannels: {
