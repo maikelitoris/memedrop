@@ -77,8 +77,9 @@ class _SealedContainerState extends State<SealedContainer>
       oldWidget.spinNotifier.removeListener(_onSpinChanged);
       widget.spinNotifier.addListener(_onSpinChanged);
     }
-    // Force rebuild when containerType changes to load new model
+    // Reset pageReady when containerType changes so the new model must signal ready again
     if (oldWidget.containerType != widget.containerType) {
+      _pageReady = false;
       setState(() {});
     }
   }
@@ -167,6 +168,7 @@ class _SealedContainerState extends State<SealedContainer>
             width: 160,
             height: 160,
             child: ModelViewer(
+              key: ValueKey(widget.containerType), // Force rebuild on container change
               src: 'assets/models/${widget.containerType}.glb',
               backgroundColor: Colors.transparent,
               autoRotate: false,
@@ -174,7 +176,7 @@ class _SealedContainerState extends State<SealedContainer>
               disableZoom: true,
               touchAction: TouchAction.none,
               interactionPrompt: InteractionPrompt.none,
-              cameraOrbit: '0deg 90deg 2.5m',
+              cameraOrbit: '0deg 45deg 2.5m', // Front view (45deg pitch = slightly above equator)
               // Signal Flutter when the GLB model has fully loaded
               relatedJs: _bridgeJs,
               javascriptChannels: {
