@@ -402,14 +402,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       AnimatedBuilder(
         animation:
             Listenable.merge([_posNotifier, _centerCtrl, _floatCtrl, _buttonCtrl]),
-        // Stable child: ModelViewer WebView survives animation rebuilds
-        child: SealedContainer(
-          isReady: _canOpen || _activated, 
-          spinNotifier: _spinNotifier,
-          containerType: _selectedContainer,
-        ),
-        builder: (context, sealedChild) {
+        builder: (context, _) {
           final displayPos = _computeDisplayPos(size);
+          
+          // Build SealedContainer here so it rebuilds when _selectedContainer changes
+          final sealedChild = SealedContainer(
+            isReady: _canOpen || _activated, 
+            spinNotifier: _spinNotifier,
+            containerType: _selectedContainer,
+          );
 
           return Stack(
             children: [
@@ -425,7 +426,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   onPanStart: _activated ? null : _onPanStart,
                   onPanUpdate: _activated ? null : _onPanUpdate,
                   onPanEnd: _activated ? null : _onPanEnd,
-                  child: sealedChild!,
+                  child: sealedChild,
                 ),
               ),
 

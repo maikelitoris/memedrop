@@ -77,6 +77,10 @@ class _SealedContainerState extends State<SealedContainer>
       oldWidget.spinNotifier.removeListener(_onSpinChanged);
       widget.spinNotifier.addListener(_onSpinChanged);
     }
+    // Force rebuild when containerType changes to load new model
+    if (oldWidget.containerType != widget.containerType) {
+      setState(() {});
+    }
   }
 
   @override
