@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -220,6 +221,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
+  // Long press hold state for opening
+  Timer? _holdTimer;
+  double _holdProgress = 0.0;
+  static const Duration _holdDuration = Duration(milliseconds: 3000);
+
   // ── Navigation ──────────────────────────────────────────────────────────
 
   void _openReveal() {
@@ -236,6 +242,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       setState(() {});
       _refresh();
     });
+  }
+
+  void _onHoldStart() {
+    if (!_canOpen || _activated) return;
+    
+    _holdProgress = 0.0;
+    const updateInterval = Duration(milliseconds: 50);
+    final steps = _holdDuration.inMilliseconds ~/ updateInterval.inMilliseconds;
+    final increment = 1.0 / steps;
+    
+    _holdTimer?.cancel();
+    _holdTimer = Timer.periodic(updateInterval, (timer) {
+      if (_holdProgress >= 1.0) {
+        timer.cancel();
+        // Hold complete - trigger the open animation
+        if (mounted) {
+          setState(() {});
+        }
+      } else {
+        _holdProgress += increment;
+        setState(() {});
+      }
+    });
+  }
+
+  void _onHoldEnd() {
+    _holdTimer?.cancel();
+    if (_holdProgress < 1.0 && mounted) {
+      // Reset progress if not completed
+      setState(() {
+        _holdProgress = 0.0;
+      });
+    }
   }
 
   // ── Drag / throw ────────────────────────────────────────────────────────
@@ -421,6 +460,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             isReady: _canOpen || _activated, 
             spinNotifier: _spinNotifier,
             containerType: _selectedContainer,
+            onOpen: _holdProgress >= 1.0 ? _openReveal : null,
           );
 
           return Stack(
@@ -524,7 +564,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         GestureDetector(
-                          onTap: _canOpen ? _openReveal : null,
+                          onTapDown: (_) => _onHoldStart(),
+                          onTapUp: (_) => _onHoldEnd(),
+                          onTapCancel: () => _onHoldEnd(),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 32, vertical: 14),
@@ -535,14 +577,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               ),
                               borderRadius: BorderRadius.circular(2),
                             ),
-                            child: Text(
-                              'O P E N  D R O P',
-                              style: TextStyle(
-                                color: _canOpen ? Colors.white : Colors.white24,
-                                fontSize: 13,
-                                letterSpacing: 4,
-                                fontWeight: FontWeight.w300,
-                              ),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                // Progress bar background
+                                if (_holdProgress > 0)
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(2),
+                                    child: FractionallySizedBox(
+                                      widthFactor: _holdProgress,
+                                      height: 1.0,
+                                      child: Container(
+                                        color: Colors.white.withOpacity(0.3),
+                                      ),
+                                    ),
+                                  ),
+                                // Text on top
+                                Text(
+                                  _holdProgress >= 1.0 
+                                      ? 'O P E N I N G...'
+                                      : 'H O L D  T O  O P E N',
+                                  style: TextStyle(
+                                    color: _canOpen ? Colors.white : Colors.white24,
+                                    fontSize: 13,
+                                    letterSpacing: 4,
+                                    fontWeight: FontWeight.w300,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
