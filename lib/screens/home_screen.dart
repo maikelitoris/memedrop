@@ -7,6 +7,7 @@ import '../constants.dart';
 import '../models/rotation_state.dart';
 import '../services/drop_service.dart';
 import '../services/streak_service.dart';
+import '../services/collection_service.dart';
 import '../widgets/sealed_container.dart';
 import '../widgets/countdown_timer.dart';
 import 'reveal_screen.dart';
@@ -32,7 +33,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     'brain',
     'pepe_compressed',
   ];
-  String _selectedContainer = 'brain'; // default model
+  String _selectedContainer = 'brain'; // default model, updated in _refresh()
 
   // Physics
   static const double _sphereSize = 160.0;
@@ -195,12 +196,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Future<void> _refresh() async {
     final dropService = ref.read(dropServiceProvider);
     final streakService = ref.read(streakServiceProvider);
+    final collectionService = await ref.read(collectionServiceProvider.future);
     final canOpen = await dropService.canOpenDrop();
     final streak = await streakService.getCurrentStreak();
+    final selectedContainer = collectionService.getSelectedContainer();
     if (mounted) {
       setState(() {
         _canOpen = canOpen;
         _streak = streak;
+        _selectedContainer = selectedContainer;
       });
     }
   }
@@ -398,14 +402,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       AnimatedBuilder(
         animation:
             Listenable.merge([_posNotifier, _centerCtrl, _floatCtrl, _buttonCtrl]),
-        // Stable child: ModelViewer WebView survives animation rebuilds
-        child: SealedContainer(
-          isReady: _canOpen || _activated, 
-          spinNotifier: _spinNotifier,
-          containerType: _selectedContainer,
-        ),
-        builder: (context, sealedChild) {
+        builder: (context, _) {
           final displayPos = _computeDisplayPos(size);
+          
+          // Build SealedContainer here so it rebuilds when _selectedContainer changes
+          final sealedChild = SealedContainer(
+            isReady: _canOpen || _activated, 
+            spinNotifier: _spinNotifier,
+            containerType: _selectedContainer,
+          );
 
           return Stack(
             children: [
@@ -421,7 +426,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   onPanStart: _activated ? null : _onPanStart,
                   onPanUpdate: _activated ? null : _onPanUpdate,
                   onPanEnd: _activated ? null : _onPanEnd,
-                  child: sealedChild!,
+                  child: sealedChild,
                 ),
               ),
 

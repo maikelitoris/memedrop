@@ -178,6 +178,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       final cs =
                           await ref.read(collectionServiceProvider.future);
                       await cs.setSelectedContainer(value);
+                      // Navigate back to home screen to apply the change
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
                     },
                   ),
                 ),
