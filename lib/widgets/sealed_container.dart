@@ -50,6 +50,10 @@ class _SealedContainerState extends State<SealedContainer>
   Future<void> Function(String)? _runJS;
   bool _pageReady = false;
   int _spinCallCount = 0;
+  
+  // Track last applied values to prevent redundant JS calls (fixes flicker)
+  double? _lastAppliedYaw;
+  double? _lastAppliedPitch;
 
   static const _glowColors = [
     RarityColors.normie,
@@ -65,15 +69,15 @@ class _SealedContainerState extends State<SealedContainer>
       basePitch: 90.0,
       pitchClampMin: 5.0,
       pitchClampMax: 175.0,
-      cameraDistance: '2.5m',
+      cameraDistance: '2.8m',
       fieldOfView: '45deg',
     ),
     'pepe_compressed': ModelCameraConfig(
       basePitch: 90.0,
-      pitchClampMin: 30.0,  // Keep pepe more equatorial
+      pitchClampMin: 30.0,
       pitchClampMax: 150.0,
-      cameraDistance: '3.0m', // Slightly farther for better fit
-      fieldOfView: '40deg',   // Narrower FOV to prevent clipping
+      cameraDistance: '3.5m',
+      fieldOfView: '38deg',
     ),
   };
 
@@ -155,31 +159,30 @@ class _SealedContainerState extends State<SealedContainer>
 
     if (!_pageReady || _runJS == null) return;
 
-    // Throttle JS bridge to ~30fps (skip every other call)
-    if (_spinCallCount % 2 != 0) return;
-
     // Get per-model configuration
     final config = _getConfig(widget.containerType);
 
     // Calculate display pitch with base offset and clamping
-    // Base pitch (e.g., 90deg) is eye-level front view, add spin offset then clamp
     double rawDisplayPitch = config.basePitch + normalizedPitch;
-    
-    // Clamp to valid range [pitchClampMin, pitchClampMax] to avoid pole singularities
-    // model-viewer's phi range is [0°, 180°], we use tighter bounds to avoid poles
     final clampedPitch = rawDisplayPitch.clamp(config.pitchClampMin, config.pitchClampMax);
     
     final yaw = normalizedYaw.toStringAsFixed(1);
     final displayPitch = clampedPitch.toStringAsFixed(1);
     
+    // Prevent redundant JS calls when values haven't changed significantly (fixes flicker)
+    const tolerance = 0.5;
+    if (_lastAppliedYaw != null && _lastAppliedPitch != null &&
+        (normalizedYaw - _lastAppliedYaw!).abs() < tolerance &&
+        (clampedPitch - _lastAppliedPitch!).abs() < tolerance) {
+      return;
+    }
+    
+    _lastAppliedYaw = normalizedYaw;
+    _lastAppliedPitch = clampedPitch;
+    
     unawaited(_runJS!(
-      'try{'
       'var mv=document.querySelector("model-viewer");'
-      'if(mv){'
-      'mv.setAttribute("camera-orbit","${yaw}deg ${displayPitch}deg ${config.cameraDistance}");'
-      'if(typeof mv.jumpCameraToGoal==="function")mv.jumpCameraToGoal();'
-      '}'
-      '}catch(e){console.warn("[SPIN] JS error:",e);}',
+      'if(mv){mv.setAttribute("camera-orbit","${yaw}deg ${displayPitch}deg ${config.cameraDistance}");}',
     ));
   }
 
@@ -236,8 +239,10 @@ class _SealedContainerState extends State<SealedContainer>
               touchAction: TouchAction.none,
               interactionPrompt: InteractionPrompt.none,
               // Use per-model config for initial camera orbit and field of view
-              cameraOrbit: '0deg 90deg ${_getConfig(widget.containerType).cameraDistance}', // Front view (90deg pitch = eye-level, straight-on)
+              cameraOrbit: '0deg 90deg ${_getConfig(widget.containerType).cameraDistance}',
               fieldOfView: _getConfig(widget.containerType).fieldOfView,
+              minCameraOrbit: '0deg 5deg',
+              maxCameraOrbit: '360deg 175deg',
               // Signal Flutter when the GLB model has fully loaded
               relatedJs: _bridgeJs,
               javascriptChannels: {
