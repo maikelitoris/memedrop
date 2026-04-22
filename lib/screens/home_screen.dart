@@ -608,8 +608,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                     borderRadius: BorderRadius.circular(2),
                                     child: FractionallySizedBox(
                                       widthFactor: _holdProgress,
-                                      height: 1.0,
+                                      alignment: Alignment.centerLeft,
                                       child: Container(
+                                        height: double.infinity,
                                         color: Colors.white.withOpacity(0.3),
                                       ),
                                     ),
