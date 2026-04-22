@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'rarity_badge.dart';
@@ -67,17 +68,17 @@ class _SealedContainerState extends State<SealedContainer>
   static const Map<String, ModelCameraConfig> _modelConfigs = {
     'brain': ModelCameraConfig(
       basePitch: 90.0,
-      pitchClampMin: 45.0,
-      pitchClampMax: 135.0,
-      cameraDistance: '4.0m',
-      fieldOfView: '35deg',
+      pitchClampMin: 50.0,
+      pitchClampMax: 130.0,
+      cameraDistance: '5.0m',
+      fieldOfView: '30deg',
     ),
     'pepe_compressed': ModelCameraConfig(
       basePitch: 90.0,
       pitchClampMin: 60.0,
       pitchClampMax: 120.0,
-      cameraDistance: '4.5m',
-      fieldOfView: '30deg',
+      cameraDistance: '5.5m',
+      fieldOfView: '28deg',
     ),
   };
 
@@ -144,45 +145,48 @@ class _SealedContainerState extends State<SealedContainer>
     _spinCallCount++;
     final state = widget.spinNotifier.value;
 
-    // Normalize angles to prevent float precision drift over long sessions
-    // Using modulo 360 to keep values bounded while preserving rotation
+    // Get per-model configuration
+    final config = _getConfig(widget.containerType);
+
+    // Use sine-based oscillation for natural pitch movement (fixes drift and hard clamping)
+    // This maps accumulated _pitchDeg to a smooth oscillation between fixed bounds
+    // Increased amplitude from 40 to 60 for more dramatic vertical rotation
+    final pitchOscillation = math.sin(state.pitchDeg * math.pi / 180.0) * 60.0;
+    double displayPitch = config.basePitch + pitchOscillation;
+    
+    // Apply soft clamping to stay within model-specific bounds
+    displayPitch = displayPitch.clamp(config.pitchClampMin, config.pitchClampMax);
+    
+    // Normalize yaw for clean rotation
     double normalizedYaw = state.yawDeg % 360.0;
-    double normalizedPitch = state.pitchDeg % 360.0;
 
     // Log every 60 calls (~1s at 60fps) to track pipeline health
     if (_spinCallCount % 60 == 0) {
       debugPrint('[SPIN] _onSpinChanged #$_spinCallCount '
           'pageReady=$_pageReady runJS=${_runJS != null} '
-          'pitch=${normalizedPitch.toStringAsFixed(1)} '
+          'pitch=${displayPitch.toStringAsFixed(1)} '
           'yaw=${normalizedYaw.toStringAsFixed(1)}');
     }
 
     if (!_pageReady || _runJS == null) return;
 
-    // Get per-model configuration
-    final config = _getConfig(widget.containerType);
-
-    // Calculate display pitch with base offset and clamping
-    double rawDisplayPitch = config.basePitch + normalizedPitch;
-    double clampedPitch = rawDisplayPitch.clamp(config.pitchClampMin, config.pitchClampMax);
-    
     final yaw = normalizedYaw.toStringAsFixed(1);
-    final displayPitch = clampedPitch.toStringAsFixed(1);
+    final pitch = displayPitch.toStringAsFixed(1);
     
     // Prevent redundant JS calls when values haven't changed significantly (fixes flicker)
     const tolerance = 2.0;
     if (_lastAppliedYaw != null && _lastAppliedPitch != null &&
         (normalizedYaw - _lastAppliedYaw!).abs() < tolerance &&
-        (clampedPitch - _lastAppliedPitch!).abs() < tolerance) {
+        (displayPitch - _lastAppliedPitch!).abs() < tolerance) {
       return;
     }
     
     _lastAppliedYaw = normalizedYaw;
-    _lastAppliedPitch = clampedPitch;
+    _lastAppliedPitch = displayPitch;
     
     unawaited(_runJS!(
       'var mv=document.querySelector("model-viewer");'
-      'if(mv){mv.setAttribute("camera-orbit","${yaw}deg ${displayPitch}deg ${config.cameraDistance}");}',
+      'if(mv){mv.setAttribute("camera-orbit","${yaw}deg ${pitch}deg ${config.cameraDistance}");}',
     ));
   }
 
