@@ -181,6 +181,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     _pitchDeg += effX * spinDeg * dt;
     _yawDeg += effY * spinDeg * dt;
+    
+    // Normalize angles to prevent float precision drift over long sessions
+    _pitchDeg = _pitchDeg % 360.0;
+    _yawDeg = _yawDeg % 360.0;
+    
+    // Exponential decay on pitch toward 0 when nearly idle (fixes flicker/snap)
+    if (speedRatio < 0.05) {
+      const decayRate = 2.0; // radians per second
+      _pitchDeg -= _pitchDeg * decayRate * dt;
+    }
+    
     _spinNotifier.value = RotationState(pitchDeg: _pitchDeg, yawDeg: _yawDeg);
 
     _tickLogCount++;
