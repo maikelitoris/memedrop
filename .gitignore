@@ -26,5 +26,7 @@ pubspec.lock
 
 # OS generated files
 .DS_Store
+
+# Windows
 Thumbs.db
 ```
