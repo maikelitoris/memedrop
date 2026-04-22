@@ -7,8 +7,14 @@ import '../models/rotation_state.dart';
 class SealedContainer extends StatefulWidget {
   final bool isReady;
   final ValueNotifier<RotationState> spinNotifier;
-  const SealedContainer(
-      {super.key, required this.isReady, required this.spinNotifier});
+  final String containerType; // e.g., 'brain', 'pepe_compressed'
+  
+  const SealedContainer({
+    super.key, 
+    required this.isReady, 
+    required this.spinNotifier,
+    this.containerType = 'brain',
+  });
 
   @override
   State<SealedContainer> createState() => _SealedContainerState();
@@ -157,7 +163,7 @@ class _SealedContainerState extends State<SealedContainer>
             width: 160,
             height: 160,
             child: ModelViewer(
-              src: 'assets/models/brain.glb',
+              src: 'assets/models/${widget.containerType}.glb',
               backgroundColor: Colors.transparent,
               autoRotate: false,
               cameraControls: false,

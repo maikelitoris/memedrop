@@ -27,6 +27,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   int _streak = 0;
   bool _activated = false;
 
+  // Available container models (3D assets)
+  static const List<String> _containerModels = [
+    'brain',
+    'pepe_compressed',
+  ];
+  String _selectedContainer = 'brain'; // default model
+
   // Physics
   static const double _sphereSize = 160.0;
   static const double _maxThrowSpeed = 600.0;
@@ -392,7 +399,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         animation:
             Listenable.merge([_posNotifier, _centerCtrl, _floatCtrl, _buttonCtrl]),
         // Stable child: ModelViewer WebView survives animation rebuilds
-        child: SealedContainer(isReady: _canOpen || _activated, spinNotifier: _spinNotifier),
+        child: SealedContainer(
+          isReady: _canOpen || _activated, 
+          spinNotifier: _spinNotifier,
+          containerType: _selectedContainer,
+        ),
         builder: (context, sealedChild) {
           final displayPos = _computeDisplayPos(size);
 

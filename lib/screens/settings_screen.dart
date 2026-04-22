@@ -24,7 +24,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   int _totalOpened = 0;
   int _historyStashed = 0;
   String _anonId = '';
+  String _selectedContainer = 'brain';
   bool _loaded = false;
+
+  // Available container models (must match home_screen.dart)
+  static const List<String> _containerModels = [
+    'brain',
+    'pepe_compressed',
+  ];
 
   @override
   void initState() {
@@ -44,6 +51,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       setState(() {
         _hapticsEnabled = cs.isHapticsEnabled();
         _crtEnabled = cs.isCrtEnabled();
+        _selectedContainer = cs.getSelectedContainer();
         _streak = streak;
         _longestStreak = longest;
         _totalStashed = cs.getCollection().length;
@@ -143,6 +151,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       final cs =
                           await ref.read(collectionServiceProvider.future);
                       await cs.setCrtEnabled(v);
+                    },
+                  ),
+                ),
+                const _Divider(),
+                _Row(
+                  label: 'CONTAINER',
+                  right: DropdownButton<String>(
+                    value: _selectedContainer,
+                    dropdownColor: const Color(0xFF141414),
+                    underline: const SizedBox.shrink(),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      letterSpacing: 2,
+                      color: Colors.white,
+                    ),
+                    items: _containerModels.map((model) {
+                      return DropdownMenuItem(
+                        value: model,
+                        child: Text(model.toUpperCase()),
+                      );
+                    }).toList(),
+                    onChanged: (value) async {
+                      if (value == null) return;
+                      setState(() => _selectedContainer = value);
+                      final cs =
+                          await ref.read(collectionServiceProvider.future);
+                      await cs.setSelectedContainer(value);
                     },
                   ),
                 ),

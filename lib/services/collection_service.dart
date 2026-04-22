@@ -33,6 +33,7 @@ class CollectionService {
   static const String _hapticsKey = 'haptics_enabled';
   static const String _crtKey = 'crt_effect_enabled';
   static const String _coinsKey = 'meme_coins';
+  static const String _containerKey = 'selected_container';
 
   CollectionService(this.prefs);
 
@@ -175,4 +176,7 @@ class CollectionService {
   }
 
   Future<void> clearCollection() => prefs.remove(_collectionKey);
+
+  String getSelectedContainer() => prefs.getString(_containerKey) ?? 'brain';
+  Future<void> setSelectedContainer(String container) => prefs.setString(_containerKey, container);
 }
