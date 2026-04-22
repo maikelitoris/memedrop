@@ -16,11 +16,8 @@ node_modules/
 .pytest_cache/
 .gradle/
 
-# Logs and temp files
+# Logs
 *.log
-*.tmp
-*.swp
-*.swo
 
 # Environment
 .env
