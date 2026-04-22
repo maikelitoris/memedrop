@@ -176,7 +176,7 @@ class _SealedContainerState extends State<SealedContainer>
               disableZoom: true,
               touchAction: TouchAction.none,
               interactionPrompt: InteractionPrompt.none,
-              cameraOrbit: '0deg 45deg 2.5m', // Front view (45deg pitch = slightly above equator)
+              cameraOrbit: '0deg 0deg 2.5m', // Front view (0deg pitch = eye-level, straight-on)
               // Signal Flutter when the GLB model has fully loaded
               relatedJs: _bridgeJs,
               javascriptChannels: {
