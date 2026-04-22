@@ -11,8 +11,10 @@
 *.ipr
 *.iws
 
-# OS generated files
+# macOS
 .DS_Store
+
+# Windows
 Thumbs.db
 
 # Logs
