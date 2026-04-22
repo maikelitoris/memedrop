@@ -1,11 +1,7 @@
 ```
-# Build artifacts
-*.dart_tool/
-*.build/
-build/
-
 # Dependencies
-pubspec.lock
+.dart_tool/
+.build/
 
 # Logs and temp files
 *.log
@@ -16,13 +12,38 @@ pubspec.lock
 .env.local
 *.env.*
 
-# Editors
-.idea/
-.vscode/
-*.swp
-*.swo
+# Coverage
+coverage/
+lcov.info
 
-# OS generated files
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/build/
+Podfile.lock
+
+# Android
+android/.gradle/
+android/gradle/
+android/build/
+android/app/build/
+gradlew
+gradlew.bat
+*.keystore
+
+# macOS
 .DS_Store
+
+# Windows
 Thumbs.db
+ehthumbs.db
+Icon?
+```
+
+Wait, I need to reconsider. Looking at the input again, there's only one modified file which is `.gitignore` itself and `lib/widgets/sealed_container.dart`. Since this appears to be a Dart/Flutter project based on the file path, but there are no build artifacts, dependency directories, or temporary files in the changes, I should not add Flutter-specific ignores unless there are actual Flutter build artifacts present.
+
+Actually, looking more carefully - the changes show `.gitignore` was modified along with a Dart file, but no build artifacts or dependency directories are listed in the added/deleted files. This suggests it's just source code changes.
+
+```
+
 ```
