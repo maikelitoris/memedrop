@@ -110,14 +110,14 @@ class _SealedContainerState extends State<SealedContainer>
 
     // Use both theta (yaw) and phi (pitch) for full 3D rotation
     // theta=yaw controls horizontal rotation, phi=pitch controls vertical tilt
-    // 2.5m distance ensures the full model stays in frame at all angles
+    // Base pitch of 90deg is eye-level front view, so we add the spin offset to that base
     final yaw = state.yawDeg.toStringAsFixed(1);
-    final pitch = state.pitchDeg.toStringAsFixed(1);
+    final displayPitch = (90.0 + state.pitchDeg).toStringAsFixed(1);
     unawaited(_runJS!(
       'try{'
       'var mv=document.querySelector("model-viewer");'
       'if(mv){'
-      'mv.setAttribute("camera-orbit","${yaw}deg ${pitch}deg 2.5m");'
+      'mv.setAttribute("camera-orbit","${yaw}deg ${displayPitch}deg 2.5m");'
       'if(typeof mv.jumpCameraToGoal==="function")mv.jumpCameraToGoal();'
       '}'
       '}catch(e){console.warn("[SPIN] JS error:",e);}',
@@ -176,7 +176,8 @@ class _SealedContainerState extends State<SealedContainer>
               disableZoom: true,
               touchAction: TouchAction.none,
               interactionPrompt: InteractionPrompt.none,
-              cameraOrbit: '0deg 0deg 2.5m', // Front view (0deg pitch = eye-level, straight-on)
+              cameraOrbit: '0deg 90deg 2.5m', // Front view (90deg pitch = eye-level, straight-on)
+              fieldOfView: '45deg',
               // Signal Flutter when the GLB model has fully loaded
               relatedJs: _bridgeJs,
               javascriptChannels: {
