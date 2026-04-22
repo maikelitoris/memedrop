@@ -67,17 +67,17 @@ class _SealedContainerState extends State<SealedContainer>
   static const Map<String, ModelCameraConfig> _modelConfigs = {
     'brain': ModelCameraConfig(
       basePitch: 90.0,
-      pitchClampMin: 5.0,
-      pitchClampMax: 175.0,
-      cameraDistance: '2.8m',
-      fieldOfView: '45deg',
+      pitchClampMin: 45.0,
+      pitchClampMax: 135.0,
+      cameraDistance: '4.0m',
+      fieldOfView: '35deg',
     ),
     'pepe_compressed': ModelCameraConfig(
       basePitch: 90.0,
-      pitchClampMin: 30.0,
-      pitchClampMax: 150.0,
-      cameraDistance: '3.5m',
-      fieldOfView: '38deg',
+      pitchClampMin: 60.0,
+      pitchClampMax: 120.0,
+      cameraDistance: '4.5m',
+      fieldOfView: '30deg',
     ),
   };
 
@@ -146,8 +146,8 @@ class _SealedContainerState extends State<SealedContainer>
 
     // Normalize angles to prevent float precision drift over long sessions
     // Using modulo 360 to keep values bounded while preserving rotation
-    final normalizedYaw = state.yawDeg % 360.0;
-    final normalizedPitch = state.pitchDeg % 360.0;
+    double normalizedYaw = state.yawDeg % 360.0;
+    double normalizedPitch = state.pitchDeg % 360.0;
 
     // Log every 60 calls (~1s at 60fps) to track pipeline health
     if (_spinCallCount % 60 == 0) {
@@ -164,13 +164,13 @@ class _SealedContainerState extends State<SealedContainer>
 
     // Calculate display pitch with base offset and clamping
     double rawDisplayPitch = config.basePitch + normalizedPitch;
-    final clampedPitch = rawDisplayPitch.clamp(config.pitchClampMin, config.pitchClampMax);
+    double clampedPitch = rawDisplayPitch.clamp(config.pitchClampMin, config.pitchClampMax);
     
     final yaw = normalizedYaw.toStringAsFixed(1);
     final displayPitch = clampedPitch.toStringAsFixed(1);
     
     // Prevent redundant JS calls when values haven't changed significantly (fixes flicker)
-    const tolerance = 0.5;
+    const tolerance = 2.0;
     if (_lastAppliedYaw != null && _lastAppliedPitch != null &&
         (normalizedYaw - _lastAppliedYaw!).abs() < tolerance &&
         (clampedPitch - _lastAppliedPitch!).abs() < tolerance) {
@@ -241,8 +241,8 @@ class _SealedContainerState extends State<SealedContainer>
               // Use per-model config for initial camera orbit and field of view
               cameraOrbit: '0deg 90deg ${_getConfig(widget.containerType).cameraDistance}',
               fieldOfView: _getConfig(widget.containerType).fieldOfView,
-              minCameraOrbit: '0deg 5deg',
-              maxCameraOrbit: '360deg 175deg',
+              minCameraOrbit: '${_getConfig(widget.containerType).minCameraOrbit}',
+              maxCameraOrbit: '${_getConfig(widget.containerType).maxCameraOrbit}',
               // Signal Flutter when the GLB model has fully loaded
               relatedJs: _bridgeJs,
               javascriptChannels: {
