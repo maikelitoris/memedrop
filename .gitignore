@@ -2,34 +2,24 @@
 # Dependencies
 .dart_tool/
 .build/
+.pub/
 
 # Logs and temp files
 *.log
 *.tmp
+*.swp
 
 # Environment
 .env
 .env.local
 *.env.*
 
-# Coverage
-coverage/
-lcov.info
-
-# iOS
-ios/Pods/
-ios/.symlinks/
-ios/build/
-Podfile.lock
-
-# Android
-android/.gradle/
-android/gradle/
-android/build/
-android/app/build/
-gradlew
-gradlew.bat
-*.keystore
+# Editors
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
 
 # macOS
 .DS_Store
