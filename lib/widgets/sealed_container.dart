@@ -34,6 +34,7 @@ class SealedContainer extends StatefulWidget {
   final ValueNotifier<RotationState> spinNotifier;
   final String containerType; // e.g., 'brain', 'pepe_compressed'
   final VoidCallback? onOpen; // Callback when open animation completes
+  final bool triggerOpen; // When true, triggers the open animation
   
   const SealedContainer({
     super.key, 
@@ -41,6 +42,7 @@ class SealedContainer extends StatefulWidget {
     required this.spinNotifier,
     this.containerType = 'brain',
     this.onOpen,
+    this.triggerOpen = false,
   });
 
   @override
@@ -155,6 +157,10 @@ class _SealedContainerState extends State<SealedContainer>
       _pageReady = false;
       setState(() {});
     }
+    // Trigger open animation when triggerOpen becomes true
+    if (!oldWidget.triggerOpen && widget.triggerOpen && !_isOpening) {
+      _handleTap();
+    }
   }
 
   @override
@@ -223,6 +229,7 @@ class _SealedContainerState extends State<SealedContainer>
   /// Handle tap to open the sealed container with model-specific animations
   void _handleTap() {
     if (_isOpening || !widget.isReady) return;
+    
     _isOpening = true;
     
     // Stop the glow animation
