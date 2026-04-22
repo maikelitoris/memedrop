@@ -1,28 +1,26 @@
 ```
-# Build artifacts
-*.dart.js
-*.map
-build/
-.dart_tool/
-
 # Dependencies
 .pub/
-pubspec.lock
+.dart_tool/
 
-# Logs and temp files
+# Build artifacts
+build/
+*.g.dart
+
+# Logs
 *.log
-*.tmp
 
 # Environment
 .env
 .env.local
 *.env.*
 
-# Editors
+# Editor/IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*.tmp
 
 # OS generated files
 .DS_Store
