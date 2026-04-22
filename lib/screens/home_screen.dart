@@ -224,7 +224,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   // Long press hold state for opening
   Timer? _holdTimer;
   double _holdProgress = 0.0;
+  bool _isHolding = false;
   static const Duration _holdDuration = Duration(milliseconds: 3000);
+
+  void _onHoldStart() {
+    if (!_canOpen || _activated || _isHolding) return;
+    
+    _isHolding = true;
+    _holdProgress = 0.0;
+    const updateInterval = Duration(milliseconds: 50);
+    final steps = _holdDuration.inMilliseconds ~/ updateInterval.inMilliseconds;
+    final increment = 1.0 / steps;
+    
+    _holdTimer?.cancel();
+    _holdTimer = Timer.periodic(updateInterval, (timer) {
+      if (_holdProgress >= 1.0) {
+        timer.cancel();
+        _isHolding = false;
+        // Hold complete - set a flag to trigger the animation on next build
+        setState(() {});
+        // After UI updates, the SealedContainer will detect onOpen is set and can be triggered
+      } else {
+        _holdProgress += increment;
+        setState(() {});
+      }
+    });
+  }
+
+  void _onHoldEnd() {
+    _holdTimer?.cancel();
+    _isHolding = false;
+    if (_holdProgress < 1.0 && mounted) {
+      // Reset progress if not completed
+      setState(() {
+        _holdProgress = 0.0;
+      });
+    }
+  }
 
   // ── Navigation ──────────────────────────────────────────────────────────
 
@@ -242,39 +278,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       setState(() {});
       _refresh();
     });
-  }
-
-  void _onHoldStart() {
-    if (!_canOpen || _activated) return;
-    
-    _holdProgress = 0.0;
-    const updateInterval = Duration(milliseconds: 50);
-    final steps = _holdDuration.inMilliseconds ~/ updateInterval.inMilliseconds;
-    final increment = 1.0 / steps;
-    
-    _holdTimer?.cancel();
-    _holdTimer = Timer.periodic(updateInterval, (timer) {
-      if (_holdProgress >= 1.0) {
-        timer.cancel();
-        // Hold complete - trigger the open animation
-        if (mounted) {
-          setState(() {});
-        }
-      } else {
-        _holdProgress += increment;
-        setState(() {});
-      }
-    });
-  }
-
-  void _onHoldEnd() {
-    _holdTimer?.cancel();
-    if (_holdProgress < 1.0 && mounted) {
-      // Reset progress if not completed
-      setState(() {
-        _holdProgress = 0.0;
-      });
-    }
   }
 
   // ── Drag / throw ────────────────────────────────────────────────────────
@@ -460,7 +463,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             isReady: _canOpen || _activated, 
             spinNotifier: _spinNotifier,
             containerType: _selectedContainer,
-            onOpen: _holdProgress >= 1.0 ? _openReveal : null,
+            onOpen: _openReveal,
+            triggerOpen: _holdProgress >= 1.0 && !_isHolding,
           );
 
           return Stack(
@@ -473,11 +477,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 height: _sphereSize,
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
+                  onTapDown: _activated ? null : (details) {
+                    if (_canOpen && !_isHolding) {
+                      _onHoldStart();
+                    }
+                  },
+                  onTapUp: _activated ? null : (details) {
+                    if (_canOpen && _isHolding) {
+                      _onHoldEnd();
+                    }
+                  },
+                  onTapCancel: _activated ? null : () {
+                    if (_canOpen && _isHolding) {
+                      _onHoldEnd();
+                    }
+                  },
                   onDoubleTap: _activated ? null : _onDoubleTap,
                   onPanStart: _activated ? null : _onPanStart,
                   onPanUpdate: _activated ? null : _onPanUpdate,
                   onPanEnd: _activated ? null : _onPanEnd,
-                  child: sealedChild,
+                  child: IgnorePointer(
+                    ignoring: _holdProgress > 0 && _holdProgress < 1.0,
+                    child: sealedChild,
+                  ),
                 ),
               ),
 
