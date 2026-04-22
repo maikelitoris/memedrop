@@ -48,7 +48,7 @@ class SealedContainer extends StatefulWidget {
 }
 
 class _SealedContainerState extends State<SealedContainer>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _glowCtrl;
   late Animation<double> _glowAnim;
   
@@ -81,8 +81,8 @@ class _SealedContainerState extends State<SealedContainer>
       basePitch: 90.0,
       pitchClampMin: 50.0,
       pitchClampMax: 130.0,
-      cameraDistance: '5.0m',
-      fieldOfView: '30deg',
+      cameraDistance: '6.5m',
+      fieldOfView: '25deg',
       glowIntensity: 2.5, // Intense glow for flash animation
     ),
     'pepe_compressed': ModelCameraConfig(
@@ -243,6 +243,10 @@ class _SealedContainerState extends State<SealedContainer>
     final startTime = DateTime.now().millisecondsSinceEpoch;
     const duration = 1500; // ms
     
+    // Get initial pitch from current state
+    final currentState = widget.spinNotifier.value;
+    final initialPitch = config.basePitch + math.sin(currentState.pitchDeg * math.pi / 180.0) * 60.0;
+    
     void animateStep() {
       if (!_isOpening) return;
       
@@ -251,17 +255,13 @@ class _SealedContainerState extends State<SealedContainer>
       // Ease-in-back curve for dramatic dive effect
       final curveT = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
       
-      // Get current pitch from state
-      final currentState = widget.spinNotifier.value;
-      final currentPitch = config.basePitch + math.sin(currentState.pitchDeg * math.pi / 180.0) * 60.0;
-      
       // Interpolate pitch from current to 0 (top view, looking straight down)
       final targetPitch = 0.0;
-      final interpPitch = currentPitch + (targetPitch - currentPitch) * curveT;
+      final interpPitch = initialPitch + (targetPitch - initialPitch) * curveT;
       
       // Interpolate distance from current to very close (dive inside)
       final startDist = double.parse(config.cameraDistance.replaceAll('m', ''));
-      final targetDist = 0.5; // Very close = black screen
+      final targetDist = 0.3; // Very close = black screen
       final interpDist = startDist + (targetDist - startDist) * curveT;
       
       // Apply camera orbit
@@ -286,7 +286,6 @@ class _SealedContainerState extends State<SealedContainer>
 
   /// Brain animation: Intensify glow until screen flashes white
   void _playBrainOpenAnimation() {
-    final config = _getConfig('brain');
     final startTime = DateTime.now().millisecondsSinceEpoch;
     const duration = 1500; // ms
     
@@ -296,11 +295,8 @@ class _SealedContainerState extends State<SealedContainer>
       final elapsed = DateTime.now().millisecondsSinceEpoch - startTime;
       final t = (elapsed / duration).clamp(0.0, 1.0);
       
-      // Update glow intensity - ramp up to maximum
-      setState(() {
-        // We'll use a local animation value for the intensifying glow
-        // The existing _glowAnim will continue but we can overlay extra intensity
-      });
+      // Ramp up glow intensity by updating the animation controller progress
+      _glowCtrl.forward(from: t);
       
       if (t < 1.0) {
         Future.delayed(const Duration(milliseconds: 16), animateStep);
