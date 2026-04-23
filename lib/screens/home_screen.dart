@@ -33,6 +33,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   static const List<String> _containerModels = [
     'brain',
     'pepe_compressed',
+    '67',
+    'lantern',
+    'gigachad',
+    'trollcube',
+    'sus',
   ];
   String _selectedContainer = 'brain'; // default model, updated in _refresh()
 
@@ -417,6 +422,149 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   // ── UI helpers ──────────────────────────────────────────────────────────
 
+  void _showModelSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF1A1A2E),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white30,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'SELECT CONTAINER',
+              style: TextStyle(
+                fontSize: 16,
+                letterSpacing: 3,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+              ),
+              itemCount: _containerModels.length,
+              itemBuilder: (context, index) {
+                final model = _containerModels[index];
+                final isSelected = model == _selectedContainer;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedContainer = model;
+                    });
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.accentBlue.withOpacity(0.3)
+                          : Colors.white10,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.accentBlue
+                            : Colors.white24,
+                        width: 2,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _getModelIcon(model),
+                          color: isSelected
+                              ? AppColors.accentBlue
+                              : Colors.white70,
+                          size: 32,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _getModelDisplayName(model),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isSelected
+                                ? Colors.white
+                                : Colors.white70,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _getModelIcon(String model) {
+    switch (model) {
+      case 'brain':
+        return Icons.psychology;
+      case 'pepe_compressed':
+        return Icons.emoji_emotions;
+      case '67':
+        return Icons.looks_one;
+      case 'lantern':
+        return Icons.lightbulb;
+      case 'gigachad':
+        return Icons.fitness_center;
+      case 'trollcube':
+        return Icons.cube_outlined;
+      case 'sus':
+        return Icons.visibility;
+      default:
+        return Icons.box_container;
+    }
+  }
+
+  String _getModelDisplayName(String model) {
+    switch (model) {
+      case 'brain':
+        return 'Brain';
+      case 'pepe_compressed':
+        return 'Pepe';
+      case '67':
+        return '67';
+      case 'lantern':
+        return 'Lantern';
+      case 'gigachad':
+        return 'Gigachad';
+      case 'trollcube':
+        return 'Trollcube';
+      case 'sus':
+        return 'Sus';
+      default:
+        return model;
+    }
+  }
+
   Widget _buildTitle() {
     return const Text(
       AppStrings.appTitle,
@@ -512,12 +660,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.tune_rounded,
+                          icon: const Icon(Icons.swap_horiz_rounded,
                               color: Colors.white),
-                          onPressed: () => Navigator.of(context)
-                              .push(MaterialPageRoute(
-                                  builder: (_) => const SettingsScreen()))
-                              .then((_) => _refresh()),
+                          onPressed: () => _showModelSelector(),
                         ),
                         Row(
                           children: [
