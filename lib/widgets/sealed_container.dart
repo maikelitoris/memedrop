@@ -95,6 +95,46 @@ class _SealedContainerState extends State<SealedContainer>
       fieldOfView: '28deg',
       glowIntensity: 1.0,
     ),
+    '67': ModelCameraConfig(
+      basePitch: 90.0,
+      pitchClampMin: 45.0,
+      pitchClampMax: 135.0,
+      cameraDistance: '5.5m',
+      fieldOfView: '32deg',
+      glowIntensity: 1.0,
+    ),
+    'lantern': ModelCameraConfig(
+      basePitch: 90.0,
+      pitchClampMin: 40.0,
+      pitchClampMax: 140.0,
+      cameraDistance: '6.0m',
+      fieldOfView: '30deg',
+      glowIntensity: 1.5,
+    ),
+    'gigachad': ModelCameraConfig(
+      basePitch: 90.0,
+      pitchClampMin: 35.0,
+      pitchClampMax: 145.0,
+      cameraDistance: '7.0m',
+      fieldOfView: '28deg',
+      glowIntensity: 1.2,
+    ),
+    'trollcube': ModelCameraConfig(
+      basePitch: 90.0,
+      pitchClampMin: 50.0,
+      pitchClampMax: 130.0,
+      cameraDistance: '5.0m',
+      fieldOfView: '35deg',
+      glowIntensity: 1.0,
+    ),
+    'sus': ModelCameraConfig(
+      basePitch: 90.0,
+      pitchClampMin: 55.0,
+      pitchClampMax: 125.0,
+      cameraDistance: '5.0m',
+      fieldOfView: '35deg',
+      glowIntensity: 1.0,
+    ),
   };
 
   /// Get config for a model, with safe fallback defaults if key is missing
@@ -228,7 +268,7 @@ class _SealedContainerState extends State<SealedContainer>
 
   /// Handle tap to open the sealed container with model-specific animations
   void _handleTap() {
-    if (_isOpening || !widget.isReady) return;
+    if (_isOpening) return;
     
     _isOpening = true;
     
