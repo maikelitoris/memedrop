@@ -476,12 +476,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   child: Container(
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? AppColors.accentBlue.withOpacity(0.3)
+                          ? AppColors.primary.withOpacity(0.3)
                           : Colors.white10,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isSelected
-                            ? AppColors.accentBlue
+                            ? AppColors.primary
                             : Colors.white24,
                         width: 2,
                       ),
@@ -492,7 +492,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         Icon(
                           _getModelIcon(model),
                           color: isSelected
-                              ? AppColors.accentBlue
+                              ? AppColors.primary
                               : Colors.white70,
                           size: 32,
                         ),
@@ -536,11 +536,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       case 'gigachad':
         return Icons.fitness_center;
       case 'trollcube':
-        return Icons.cube_outlined;
+        return Icons.view_in_ar;
       case 'sus':
         return Icons.visibility;
       default:
-        return Icons.box_container;
+        return Icons.inventory_2_outlined;
     }
   }
 
